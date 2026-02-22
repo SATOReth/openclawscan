@@ -1,0 +1,21 @@
+{
+  "name": "@openclawscan/verify",
+  "version": "0.1.0",
+  "description": "Lightweight receipt verification for OpenClawScan — verify AI agent receipts without the full SDK",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "node --test dist/test.js"
+  },
+  "dependencies": {
+    "tweetnacl": "^1.0.3",
+    "tweetnacl-util": "^0.15.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "@types/node": "^20.0.0"
+  },
+  "files": ["dist"],
+  "license": "MIT"
+}
