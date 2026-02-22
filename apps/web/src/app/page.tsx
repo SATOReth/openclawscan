@@ -1,5 +1,6 @@
-import { TBox, Stat, PixelBar } from '@/components/ui';
+import { TBox, Stat } from '@/components/ui';
 import { TerminalDemo } from '@/components/terminal-demo';
+import { CopyInstall } from '@/components/copy-install';
 import Link from 'next/link';
 
 const LOGO_ART = ` ██████╗  ██████╗███████╗
@@ -33,17 +34,13 @@ export default function Home() {
             Share one link, prove everything.
           </p>
 
-          <div className="flex items-center gap-2 p-2.5 px-3.5 bg-card border border-faint mb-2.5 text-[12px]">
-            <span className="text-accent">$</span>
-            <span className="text-tx">npm install @openclawscan/sdk</span>
-            <span className="ml-auto text-[9px] text-ghost cursor-pointer hover:text-dim">COPY</span>
-          </div>
+          <CopyInstall command="npm install @openclawscan/sdk" />
 
           <div className="flex gap-1.5 mb-8">
             <Link href="/dashboard" className="px-5 py-2.5 bg-accent text-black text-[12px] font-bold border-none">
               DASHBOARD →
             </Link>
-            <a href="https://github.com" className="px-5 py-2.5 bg-transparent text-dim text-[12px] border border-faint hover:border-ghost transition-colors">
+            <a href="https://github.com/SATOReth/openclawscan" target="_blank" rel="noopener noreferrer" className="px-5 py-2.5 bg-transparent text-dim text-[12px] border border-faint hover:border-ghost transition-colors">
               GITHUB
             </a>
             <Link href="/docs" className="px-5 py-2.5 bg-transparent text-dim text-[12px] border border-faint hover:border-ghost transition-colors">
@@ -52,9 +49,9 @@ export default function Home() {
           </div>
 
           <div className="flex gap-6 text-[10px] text-ghost">
-            <span><span className="text-tx font-bold text-sm">2.4k</span> agents</span>
-            <span><span className="text-tx font-bold text-sm">180k</span> receipts</span>
-            <span><span className="text-tx font-bold text-sm">99.9%</span> uptime</span>
+            <span><span className="text-tx font-bold text-sm">Ed25519</span> signed</span>
+            <span><span className="text-tx font-bold text-sm">SHA-256</span> hashed</span>
+            <span><span className="text-tx font-bold text-sm">MIT</span> licensed</span>
           </div>
         </div>
 
@@ -85,51 +82,41 @@ export default function Home() {
             <div key={title} className="p-4 bg-card">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-[10px] tracking-widest" style={{ color: col }}>{px}</span>
-                <span className="text-[12px] font-bold text-bright">{title}</span>
+                <span className="text-[13px] font-bold text-bright">{title}</span>
               </div>
-              <p className="text-[10.5px] text-dim leading-relaxed">{desc}</p>
+              <p className="text-[12px] text-dim leading-relaxed">{desc}</p>
             </div>
           ))}
         </div>
       </TBox>
 
-      {/* ── How it works + Supported actions ── */}
+      {/* ── Workflow + Compatible ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <TBox title="WORKFLOW" color="#22c55e">
           {[
             { n: '01', t: 'Install', cmd: 'npm install @openclawscan/sdk', desc: 'One package. Generates Ed25519 keypair and registers your agent automatically.' },
             { n: '02', t: 'Capture', cmd: 'await scanner.capture({ action, model, input, output })', desc: 'Every action is hashed (SHA-256) and signed (Ed25519) in real-time.' },
-            { n: '03', t: 'Verify', cmd: '→ openclawscan.xyz/task/a3f8c2b1', desc: 'One link. Signatures verified in the browser. Your client sees everything.' },
+            { n: '03', t: 'Verify', cmd: '→ openclawscan.vercel.app/task/a3f8c2b1', desc: 'One link. Signatures verified in the browser. Your client sees everything.' },
           ].map((s, i) => (
-            <div key={s.n} className={`py-3 ${i < 2 ? 'border-b border-faint' : ''}`}>
-              <div className="flex gap-2.5 items-center mb-1">
-                <span className="text-[10px] text-accent font-bold">{s.n}</span>
-                <span className="text-[13px] font-bold text-bright">{s.t}</span>
+            <div key={s.n} className={`py-4 ${i < 2 ? 'border-b border-faint' : ''}`}>
+              <div className="flex gap-2.5 items-center mb-1.5">
+                <span className="text-[11px] text-accent font-bold">{s.n}</span>
+                <span className="text-[15px] font-bold text-bright">{s.t}</span>
               </div>
-              <p className="text-[10.5px] text-dim leading-relaxed mb-1.5">{s.desc}</p>
-              <code className="text-[10px] text-ghost bg-bg px-2.5 py-1 inline-block border border-faint overflow-auto max-w-full">{s.cmd}</code>
+              <p className="text-[13px] text-dim leading-relaxed mb-2">{s.desc}</p>
+              <code className="text-[11px] text-ghost bg-bg px-2.5 py-1.5 inline-block border border-faint overflow-auto max-w-full">{s.cmd}</code>
             </div>
           ))}
         </TBox>
 
-        <div>
-          <TBox title="SUPPORTED ACTIONS" color="#60a5fa">
-            <div className="space-y-1.5">
-              {['tool_call', 'model_call', 'file_write', 'file_read', 'web_search', 'api_call', 'message', 'custom'].map(a => (
-                <PixelBar key={a} label={a} value={20} max={20} color={a.includes('tool') || a.includes('model') ? '#22c55e' : a.includes('file') || a.includes('web') ? '#60a5fa' : '#eab308'} />
-              ))}
+        <TBox title="COMPATIBLE WITH" color="#666">
+          {['OpenClaw', 'LangChain', 'AutoGen', 'Custom agents'].map((name, i) => (
+            <div key={name} className={`py-3 flex justify-between ${i < 3 ? 'border-b border-faint' : ''}`}>
+              <span className="text-[13px] font-semibold text-bright">{name}</span>
+              <span className="text-[12px] text-dim">{i === 0 ? 'Native' : i === 3 ? 'Node.js SDK' : 'Coming soon'}</span>
             </div>
-          </TBox>
-
-          <TBox title="COMPATIBLE WITH" color="#666">
-            {['OpenClaw', 'LangChain', 'AutoGen', 'Custom agents'].map((name, i) => (
-              <div key={name} className={`py-2 flex justify-between ${i < 3 ? 'border-b border-faint' : ''}`}>
-                <span className="text-[11px] font-semibold text-bright">{name}</span>
-                <span className="text-[10px] text-dim">{i === 0 ? 'Native' : i === 3 ? 'Node.js SDK' : 'Adapter'}</span>
-              </div>
-            ))}
-          </TBox>
-        </div>
+          ))}
+        </TBox>
       </div>
 
       {/* ── Receipt anatomy + Security ── */}
@@ -144,18 +131,20 @@ export default function Home() {
 │ timestamp    2026-02-21T14:31:15Z    │
 ├──────────── ACTION ──────────────────┤
 │ type         tool_call               │
-│ name         mythril_scan            │
-│ duration     12.0s                   │
+│ name         slither_scan            │
+│ duration     8,400ms                 │
 ├──────────── MODEL ───────────────────┤
 │ provider     anthropic               │
 │ model        claude-sonnet-4-5       │
 │ tokens_in    3,840                   │
 │ tokens_out   5,560                   │
-│ cost         `}<span className="text-accent">$0.072</span>{`                   │
-├──────────── INTEGRITY ───────────────┤
-│ input_hash   fc5ff8db…c404924        │
-│ output_hash  27c8c079…9052dc1        │
-│ algorithm    `}<span className="text-accent">ed25519</span>{`                │
+│ cost         $0.072                  │
+├──────────── HASHES ──────────────────┤
+│ input_hash   a1b2c3d4e5f6...        │
+│ output_hash  f6e5d4c3b2a1...        │
+├──────────── SIGNATURE ───────────────┤
+│ algorithm    ed25519                 │
+│ public_key   VzqZUrs/ZPyw+...       │
 │ signature    `}<span className="text-accent">✓ valid</span>{`                 │
 └──────────────────────────────────────┘`}
           </pre>
@@ -169,49 +158,23 @@ export default function Home() {
             ['#a78bfa', 'Completeness', 'Sequential numbering — gaps are immediately visible.'],
             ['#ef4444', 'Timestamping', 'Server-verified — drift > 5min flagged. Can\'t backdate.'],
           ].map(([color, title, desc], i) => (
-            <div key={title} className={`py-2.5 ${i < 4 ? 'border-b border-faint' : ''}`}>
+            <div key={title} className={`py-3 ${i < 4 ? 'border-b border-faint' : ''}`}>
               <div className="flex gap-2 items-center mb-1">
                 <span className="text-[8px]" style={{ color }}>██</span>
-                <span className="text-[12px] font-semibold text-bright">{title}</span>
+                <span className="text-[13px] font-semibold text-bright">{title}</span>
               </div>
-              <p className="text-[10.5px] text-dim leading-relaxed pl-5">{desc}</p>
+              <p className="text-[12px] text-dim leading-relaxed pl-5">{desc}</p>
             </div>
           ))}
         </TBox>
       </div>
-
-      {/* ── Part of ClawControl ── */}
-      <TBox title="PART OF CLAWCONTROL" color="#a78bfa">
-        <p className="text-[12px] text-tx mb-3 leading-relaxed">
-          OpenClawScan is the verification layer of <span className="text-purple font-bold">ClawControl</span> — the unified platform for OpenClaw agent owners.
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-faint -mx-4 -mb-3.5">
-          {[
-            ['#60a5fa', 'BUILD', 'Agent setup, skill manager, smart recommendations'],
-            ['#eab308', 'COSTS', 'Budget caps, smart routing, savings reports'],
-            ['#ef4444', 'SECURITY', '55 audit checks, one-click fix, kill switch'],
-            ['#22d3ee', 'WORK', 'Curated marketplace, bounty hunting, skill matching'],
-            ['#666', 'COMMUNITY', 'Aggregated feeds, trending skills, weekly summaries'],
-            ['#22c55e', 'VERIFY', 'On-chain proof, reputation scores ← you are here'],
-          ].map(([col, name, desc]) => (
-            <div key={name} className="p-3.5 px-4 bg-card">
-              <div className="flex items-center gap-1.5 mb-1">
-                <span className="text-[8px]" style={{ color: col }}>██</span>
-                <span className={`text-[11px] font-bold ${name === 'VERIFY' ? 'text-accent' : 'text-bright'}`}>{name}</span>
-                {name === 'VERIFY' && <span className="text-[8px] text-accent border border-accent/20 px-1">◈</span>}
-              </div>
-              <p className="text-[10px] text-dim leading-snug">{desc}</p>
-            </div>
-          ))}
-        </div>
-      </TBox>
 
       {/* ── Free forever ── */}
       <div id="pricing">
         <TBox title="PRICING" color="#22c55e">
           <div className="text-center py-6">
             <p className="text-[28px] font-bold text-bright mb-1">Free. Forever.</p>
-            <p className="text-[12px] text-dim mb-6 max-w-[500px] mx-auto leading-relaxed">
+            <p className="text-[13px] text-dim mb-6 max-w-[500px] mx-auto leading-relaxed">
               Unlimited agents. Unlimited receipts. Full API access. PDF export.
               No tiers, no paywalls, no limits. Standards should be free.
             </p>
@@ -224,13 +187,21 @@ export default function Home() {
             <div className="border border-faint p-4 max-w-[480px] mx-auto text-left bg-card">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-[8px] text-purple">██</span>
-                <span className="text-[11px] font-bold text-bright">Support the project</span>
+                <span className="text-[12px] font-bold text-bright">Support the project</span>
               </div>
-              <p className="text-[10.5px] text-dim leading-relaxed">
+              <p className="text-[12px] text-dim leading-relaxed mb-3">
                 OpenClawScan is funded by the community. A support token lives on
                 Base L2 — no utility, no promises. Just a way to back the protocol
                 if you believe in verifiable AI.
               </p>
+              <a
+                href="https://basescan.org/token/OCS_TOKEN_ADDRESS"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block text-[13px] font-bold text-accent border border-accent/30 px-3 py-1.5 bg-accent/[.05] hover:bg-accent/[.1] transition-colors"
+              >
+                $OCS on Base →
+              </a>
             </div>
           </div>
         </TBox>
@@ -246,9 +217,9 @@ export default function Home() {
             ['Different from logging?', 'Logs can be edited. Receipts are signed (Ed25519) + sequenced (gaps visible).'],
             ['What agents work?', 'OpenClaw natively. Any Node.js app via SDK. LangChain + AutoGen adapters planned.'],
           ].map(([q, a], i) => (
-            <div key={q} className={`py-2.5 ${i < 4 ? 'border-b border-faint' : ''}`}>
-              <p className="text-[11px] font-bold text-bright mb-0.5"><span className="text-ghost">?</span> {q}</p>
-              <p className="text-[10px] text-dim leading-relaxed pl-3">{a}</p>
+            <div key={q} className={`py-3 ${i < 4 ? 'border-b border-faint' : ''}`}>
+              <p className="text-[13px] font-bold text-bright mb-1"><span className="text-ghost">?</span> {q}</p>
+              <p className="text-[12px] text-dim leading-relaxed pl-4">{a}</p>
             </div>
           ))}
         </TBox>
@@ -260,25 +231,25 @@ export default function Home() {
               ['Storage', 'SQLite local + Supabase'], ['Frontend', 'Next.js 14 + React 18'],
               ['Chain', 'Base L2 (optional)'], ['License', 'MIT'],
             ].map(([k, v], i) => (
-              <div key={k} className={`flex justify-between py-2 ${i < 5 ? 'border-b border-faint' : ''}`}>
-                <span className="text-[10px] text-ghost">{k}</span>
-                <span className="text-[11px] text-tx">{v}</span>
+              <div key={k} className={`flex justify-between py-2.5 ${i < 5 ? 'border-b border-faint' : ''}`}>
+                <span className="text-[12px] text-ghost">{k}</span>
+                <span className="text-[12px] text-tx">{v}</span>
               </div>
             ))}
           </TBox>
 
           <TBox title="ROADMAP" color="#22d3ee">
             {[
-              ['#22c55e', 'v1.0', 'NOW', 'SDK, receipts, explorer, sharing'],
-              ['#60a5fa', 'v1.1', 'MAR', 'PDF export, alerts, LangChain adapter'],
-              ['#a78bfa', 'v1.2', 'APR', 'On-chain verification via Base L2'],
-              ['#eab308', 'v1.3', 'MAY', 'Marketplace API, reputation scores'],
+              ['#22c55e', 'v1.0', '✓', 'SDK, receipts, explorer, sharing'],
+              ['#60a5fa', 'v1.1', 'NEXT', 'PDF export, alerts, LangChain adapter'],
+              ['#a78bfa', 'v1.2', 'SOON', 'On-chain anchoring via Base L2'],
+              ['#eab308', 'v1.3', 'PLANNED', 'Marketplace API, reputation scores'],
             ].map(([col, ver, when, desc], i) => (
-              <div key={ver} className={`flex gap-2.5 py-2 items-center ${i < 3 ? 'border-b border-faint' : ''}`}>
+              <div key={ver} className={`flex gap-2.5 py-2.5 items-center ${i < 3 ? 'border-b border-faint' : ''}`}>
                 <span className="text-[8px]" style={{ color: col }}>██</span>
-                <span className="text-[11px] font-bold text-bright min-w-[32px]">{ver}</span>
-                <span className="text-[9px] min-w-[28px]" style={{ color: col }}>{when}</span>
-                <span className="text-[10px] text-dim">{desc}</span>
+                <span className="text-[12px] font-bold text-bright min-w-[32px]">{ver}</span>
+                <span className="text-[10px] min-w-[52px]" style={{ color: col }}>{when}</span>
+                <span className="text-[12px] text-dim">{desc}</span>
               </div>
             ))}
           </TBox>
@@ -288,15 +259,15 @@ export default function Home() {
       {/* ── CTA ── */}
       <div className="border border-accent/20 bg-accent/[.03] p-8 text-center mb-4">
         <p className="text-[15px] font-bold text-bright mb-2">Make your agent verifiable.</p>
-        <p className="text-[12px] text-dim mb-4">5 minutes to set up. Free forever for basic use.</p>
+        <p className="text-[13px] text-dim mb-4">5 minutes to set up. Free forever.</p>
         <div className="flex gap-1.5 justify-center flex-wrap">
           <Link href="/signup" className="px-5 py-2.5 bg-accent text-black text-[12px] font-bold">GET STARTED</Link>
           <Link href="/docs" className="px-5 py-2.5 bg-transparent text-dim text-[12px] border border-faint">DOCS</Link>
         </div>
       </div>
 
-      <div className="text-[9px] text-ghost text-center py-3 pb-8">
-        ◈ openclawscan · MIT · v1.0.0 · part of ClawControl
+      <div className="text-[10px] text-ghost text-center py-3 pb-8">
+        ◈ openclawscan · MIT · v1.0.0
       </div>
     </div>
   );

@@ -140,7 +140,7 @@ export default function DashboardPage() {
           {'const scanner = new OpenClawScan({ agentId: "...", apiKey: "ocs_..." })'}
         </code>
         <p className="text-[10px] text-ghost mt-2">
-          Lost your key? You can regenerate it in account settings.
+          Your API key was generated when you signed up. Check the <strong className="text-dim">owners</strong> table in your Supabase dashboard.
         </p>
       </TBox>
     </div>

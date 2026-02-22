@@ -80,6 +80,9 @@ export async function POST(req: NextRequest) {
 
   // 8. No receipt limits — OpenClawScan is completely free
 
+  // 8b. Extract the signed payload (everything except signature + server_received_at)
+  const signedPayload = extractSignablePayload(body);
+
   // 9. Check for duplicate receipt_id
   const { data: existing } = await supabaseAdmin
     .from('receipts')
@@ -149,6 +152,7 @@ export async function POST(req: NextRequest) {
     signature_algorithm: signature.algorithm,
     signature_public_key: signature.public_key,
     signature_value: signature.value,
+    signed_payload: signedPayload,
   });
 
   if (insertError) {

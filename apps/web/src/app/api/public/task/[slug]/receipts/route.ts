@@ -33,7 +33,8 @@ export async function GET(
       cost_usd, was_routed,
       input_sha256, output_sha256,
       session_id, sequence, visibility,
-      signature_algorithm, signature_public_key, signature_value
+      signature_algorithm, signature_public_key, signature_value,
+      signed_payload
     `)
     .eq('task_id', task.id)
     .in('visibility', ['public', 'task_only'])
@@ -72,6 +73,7 @@ export async function GET(
         public_key: r.signature_public_key,
         value: r.signature_value,
       },
+      signed_payload: r.signed_payload,
     })),
   });
 }
