@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // 11. Store the receipt
+  // 11. Prepare data
   const action = body.action as { type: string; name: string; duration_ms: number };
   const model = body.model as {
     provider: string;
@@ -132,7 +132,42 @@ export async function POST(req: NextRequest) {
     return jsonError('Invalid visibility: ' + visibility + '. Must be: private, task_only, public', 400);
   }
 
-  // 12. Return success with explorer URL
+  // 12. Insert into database
+  const { error: insertError } = await supabaseAdmin
+    .from('receipts')
+    .insert({
+      receipt_id: body.receipt_id,
+      agent_id: agent.id,
+      owner_id: auth.ownerId,
+      task_id: taskUuid,
+      timestamp: body.timestamp,
+      server_received_at: serverReceivedAt,
+      action_type: action.type,
+      action_name: action.name,
+      action_duration_ms: action.duration_ms,
+      model_provider: model.provider,
+      model_name: model.name,
+      tokens_in: model.tokens_in,
+      tokens_out: model.tokens_out,
+      cost_usd: cost.amount_usd,
+      was_routed: cost.was_routed,
+      input_sha256: hashes.input_sha256,
+      output_sha256: hashes.output_sha256,
+      session_id: context.session_id,
+      sequence: context.sequence,
+      visibility,
+      signature_algorithm: signature.algorithm,
+      signature_public_key: signature.public_key,
+      signature_value: signature.value,
+      signed_payload: signedPayload,
+    });
+
+  if (insertError) {
+    console.error('Receipt insert error:', insertError);
+    return jsonError('Failed to store receipt: ' + insertError.message, 500);
+  }
+
+  // 13. Return success with explorer URL
   const explorerUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://openclawscan.xyz'}/receipt/${body.receipt_id}`;
 
   return Response.json(
@@ -144,4 +179,3 @@ export async function POST(req: NextRequest) {
     { status: 201 }
   );
 }
-
