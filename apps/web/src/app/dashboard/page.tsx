@@ -4,7 +4,20 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { TBox, Stat, Skeleton, Empty } from '@/components/ui';
 
+function CopyBtn({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+      className="px-2 py-0.5 text-[9px] font-bold border border-faint hover:border-ghost transition-colors"
+    >
+      {copied ? '✓ COPIED' : 'COPY'}
+    </button>
+  );
+}
+
 interface DashStats {
+  api_key: string | null;
   agents: number;
   receipts: number;
   tasks: number;
@@ -131,17 +144,24 @@ export default function DashboardPage() {
         )}
       </TBox>
 
-      {/* ── API Key reminder ── */}
+      {/* ── API Key ── */}
       <TBox title="YOUR API KEY" color="#eab308">
-        <p className="text-[10.5px] text-dim leading-relaxed">
-          Your API key is shown once when you create your account. Use it in the SDK:
-        </p>
-        <code className="text-[10px] text-ghost bg-bg px-3 py-1.5 mt-2 block border border-faint overflow-auto">
-          {'const scanner = new OpenClawScan({ agentId: "...", apiKey: "ocs_..." })'}
-        </code>
-        <p className="text-[10px] text-ghost mt-2">
-          Your API key was generated when you signed up. Check the <strong className="text-dim">owners</strong> table in your Supabase dashboard.
-        </p>
+        {stats?.api_key ? (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[9px] text-ghost tracking-widest">API KEY</span>
+              <CopyBtn text={stats.api_key} />
+            </div>
+            <div className="bg-bg border border-faint px-3 py-2 font-mono text-[11px] text-tx break-all select-all">
+              {stats.api_key}
+            </div>
+            <p className="text-[10px] text-ghost mt-2">
+              Use this key in the SDK: <code className="text-dim">apiKey: &apos;{stats.api_key.slice(0, 12)}...&apos;</code>
+            </p>
+          </div>
+        ) : (
+          <p className="text-[10.5px] text-dim">API key not found. Contact support.</p>
+        )}
       </TBox>
     </div>
   );

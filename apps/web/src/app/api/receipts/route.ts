@@ -127,37 +127,9 @@ export async function POST(req: NextRequest) {
   const hashes = body.hashes as { input_sha256: string; output_sha256: string };
   const visibility = (body.visibility as string) || 'private';
   const serverReceivedAt = new Date().toISOString();
-
-  const { error: insertError } = await supabaseAdmin.from('receipts').insert({
-    receipt_id: body.receipt_id,
-    agent_id: agent.id,
-    owner_id: auth.ownerId,
-    timestamp,
-    server_received_at: serverReceivedAt,
-    action_type: action.type,
-    action_name: action.name,
-    action_duration_ms: action.duration_ms,
-    model_provider: model.provider,
-    model_name: model.name,
-    tokens_in: model.tokens_in,
-    tokens_out: model.tokens_out,
-    cost_usd: cost.amount_usd,
-    was_routed: cost.was_routed || false,
-    input_sha256: hashes.input_sha256,
-    output_sha256: hashes.output_sha256,
-    task_id: taskUuid,
-    session_id: context.session_id,
-    sequence: context.sequence,
-    visibility,
-    signature_algorithm: signature.algorithm,
-    signature_public_key: signature.public_key,
-    signature_value: signature.value,
-    signed_payload: signedPayload,
-  });
-
-  if (insertError) {
-    console.error('Receipt insert error:', insertError);
-    return jsonError('Failed to store receipt', 500);
+  const VALID_VISIBILITIES = ['private', 'task_only', 'public'];
+  if (!VALID_VISIBILITIES.includes(visibility)) {
+    return jsonError('Invalid visibility: ' + visibility + '. Must be: private, task_only, public', 400);
   }
 
   // 12. Return success with explorer URL
@@ -172,3 +144,4 @@ export async function POST(req: NextRequest) {
     { status: 201 }
   );
 }
+

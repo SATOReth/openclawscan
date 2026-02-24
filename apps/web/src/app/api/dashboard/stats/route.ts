@@ -13,7 +13,12 @@ export async function GET(req: NextRequest) {
 
   const ownerId = session.ownerId;
 
-  // Agent count
+  // Get API key
+  const { data: owner } = await supabaseAdmin
+    .from('owners')
+    .select('api_key')
+    .eq('id', ownerId)
+    .single();
   const { count: agentCount } = await supabaseAdmin
     .from('agents')
     .select('*', { count: 'exact', head: true })
@@ -56,6 +61,7 @@ export async function GET(req: NextRequest) {
     .limit(5);
 
   return Response.json({
+    api_key: owner?.api_key || null,
     agents: agentCount || 0,
     receipts: receiptCount || 0,
     tasks: taskCount || 0,

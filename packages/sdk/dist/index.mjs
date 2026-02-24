@@ -1,61 +1,12 @@
-"use strict";
-var __create = Object.create;
-var __defProp = Object.defineProperty;
-var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
-var __getOwnPropNames = Object.getOwnPropertyNames;
-var __getProtoOf = Object.getPrototypeOf;
-var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __export = (target, all) => {
-  for (var name in all)
-    __defProp(target, name, { get: all[name], enumerable: true });
-};
-var __copyProps = (to, from, except, desc) => {
-  if (from && typeof from === "object" || typeof from === "function") {
-    for (let key of __getOwnPropNames(from))
-      if (!__hasOwnProp.call(to, key) && key !== except)
-        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
-  }
-  return to;
-};
-var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
-  // If the importer is in node compatibility mode or this is not an ESM
-  // file that has been converted to a CommonJS file using a Babel-
-  // compatible transform (i.e. "__esModule" has not been set), then set
-  // "default" to the CommonJS "module.exports" for node compatibility.
-  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
-  mod
-));
-var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
-
-// src/index.ts
-var index_exports = {};
-__export(index_exports, {
-  ApiClient: () => ApiClient,
-  LocalBackup: () => LocalBackup,
-  OpenClawScan: () => OpenClawScan,
-  ReceiptBuilder: () => ReceiptBuilder,
-  deserializeKeyPair: () => deserializeKeyPair,
-  generateKeyPair: () => generateKeyPair,
-  generateReceiptId: () => generateReceiptId,
-  generateSessionId: () => generateSessionId,
-  publicKeyFromSecret: () => publicKeyFromSecret,
-  serializeKeyPair: () => serializeKeyPair,
-  sha256: () => sha256,
-  verifyHash: () => verifyHash,
-  verifyReceipt: () => verifyReceipt,
-  verifySignature: () => verifySignature
-});
-module.exports = __toCommonJS(index_exports);
-
 // src/receipt.ts
-var import_crypto2 = require("crypto");
+import { randomBytes } from "crypto";
 
 // src/crypto.ts
-var import_tweetnacl = __toESM(require("tweetnacl"));
-var import_tweetnacl_util = require("tweetnacl-util");
-var import_crypto = require("crypto");
+import nacl from "tweetnacl";
+import { encodeBase64, decodeBase64 } from "tweetnacl-util";
+import { createHash } from "crypto";
 function generateKeyPair() {
-  const kp = import_tweetnacl.default.sign.keyPair();
+  const kp = nacl.sign.keyPair();
   return {
     publicKey: kp.publicKey,
     secretKey: kp.secretKey
@@ -63,23 +14,23 @@ function generateKeyPair() {
 }
 function serializeKeyPair(kp) {
   return {
-    publicKey: (0, import_tweetnacl_util.encodeBase64)(kp.publicKey),
-    secretKey: (0, import_tweetnacl_util.encodeBase64)(kp.secretKey)
+    publicKey: encodeBase64(kp.publicKey),
+    secretKey: encodeBase64(kp.secretKey)
   };
 }
 function deserializeKeyPair(skp) {
   return {
-    publicKey: (0, import_tweetnacl_util.decodeBase64)(skp.publicKey),
-    secretKey: (0, import_tweetnacl_util.decodeBase64)(skp.secretKey)
+    publicKey: decodeBase64(skp.publicKey),
+    secretKey: decodeBase64(skp.secretKey)
   };
 }
 function publicKeyFromSecret(secretKeyBase64) {
-  const secretKey = (0, import_tweetnacl_util.decodeBase64)(secretKeyBase64);
-  const keyPair = import_tweetnacl.default.sign.keyPair.fromSecretKey(secretKey);
-  return (0, import_tweetnacl_util.encodeBase64)(keyPair.publicKey);
+  const secretKey = decodeBase64(secretKeyBase64);
+  const keyPair = nacl.sign.keyPair.fromSecretKey(secretKey);
+  return encodeBase64(keyPair.publicKey);
 }
 function sha256(data) {
-  return (0, import_crypto.createHash)("sha256").update(data, "utf8").digest("hex");
+  return createHash("sha256").update(data, "utf8").digest("hex");
 }
 function deepSortKeys(obj) {
   if (obj === null || typeof obj !== "object") return obj;
@@ -96,23 +47,23 @@ function payloadToBytes(payload) {
   return new TextEncoder().encode(json);
 }
 function signPayload(payload, secretKeyBase64) {
-  const secretKey = (0, import_tweetnacl_util.decodeBase64)(secretKeyBase64);
-  const keyPair = import_tweetnacl.default.sign.keyPair.fromSecretKey(secretKey);
+  const secretKey = decodeBase64(secretKeyBase64);
+  const keyPair = nacl.sign.keyPair.fromSecretKey(secretKey);
   const messageBytes = payloadToBytes(payload);
-  const signatureBytes = import_tweetnacl.default.sign.detached(messageBytes, secretKey);
+  const signatureBytes = nacl.sign.detached(messageBytes, secretKey);
   return {
     algorithm: "ed25519",
-    public_key: (0, import_tweetnacl_util.encodeBase64)(keyPair.publicKey),
-    value: (0, import_tweetnacl_util.encodeBase64)(signatureBytes)
+    public_key: encodeBase64(keyPair.publicKey),
+    value: encodeBase64(signatureBytes)
   };
 }
 function verifySignature(payload, signature) {
   try {
     if (signature.algorithm !== "ed25519") return false;
-    const publicKey = (0, import_tweetnacl_util.decodeBase64)(signature.public_key);
-    const signatureBytes = (0, import_tweetnacl_util.decodeBase64)(signature.value);
+    const publicKey = decodeBase64(signature.public_key);
+    const signatureBytes = decodeBase64(signature.value);
     const messageBytes = payloadToBytes(payload);
-    return import_tweetnacl.default.sign.detached.verify(messageBytes, signatureBytes, publicKey);
+    return nacl.sign.detached.verify(messageBytes, signatureBytes, publicKey);
   } catch {
     return false;
   }
@@ -133,7 +84,7 @@ function verifyReceipt(receipt, originalOutput) {
 // src/receipt.ts
 function generateReceiptId() {
   const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-  const bytes = (0, import_crypto2.randomBytes)(12);
+  const bytes = randomBytes(12);
   let id = "rcpt_";
   for (let i = 0; i < 12; i++) {
     id += chars[bytes[i] % chars.length];
@@ -142,7 +93,7 @@ function generateReceiptId() {
 }
 function generateSessionId() {
   const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-  const bytes = (0, import_crypto2.randomBytes)(8);
+  const bytes = randomBytes(8);
   let id = "sess_";
   for (let i = 0; i < 8; i++) {
     id += chars[bytes[i] % chars.length];
@@ -231,18 +182,18 @@ var ReceiptBuilder = class {
 };
 
 // src/backup.ts
-var import_fs = require("fs");
-var import_path = require("path");
-var import_os = require("os");
-var DEFAULT_BACKUP_DIR = (0, import_path.join)((0, import_os.homedir)(), ".openclawscan", "receipts");
+import { mkdirSync, appendFileSync, existsSync } from "fs";
+import { join } from "path";
+import { homedir } from "os";
+var DEFAULT_BACKUP_DIR = join(homedir(), ".openclawscan", "receipts");
 var LocalBackup = class {
   constructor(backupDir) {
     this.backupDir = backupDir || DEFAULT_BACKUP_DIR;
     this.ensureDir();
   }
   ensureDir() {
-    if (!(0, import_fs.existsSync)(this.backupDir)) {
-      (0, import_fs.mkdirSync)(this.backupDir, { recursive: true });
+    if (!existsSync(this.backupDir)) {
+      mkdirSync(this.backupDir, { recursive: true });
     }
   }
   /**
@@ -252,9 +203,9 @@ var LocalBackup = class {
   save(receipt) {
     try {
       const date = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
-      const filePath = (0, import_path.join)(this.backupDir, `${date}.jsonl`);
+      const filePath = join(this.backupDir, `${date}.jsonl`);
       const line = JSON.stringify(receipt) + "\n";
-      (0, import_fs.appendFileSync)(filePath, line, "utf8");
+      appendFileSync(filePath, line, "utf8");
     } catch (err) {
       console.error("[OpenClawScan] Local backup failed:", err);
     }
@@ -419,8 +370,7 @@ var OpenClawScan = class {
     return verifyReceipt(receipt, originalOutput);
   }
 };
-// Annotate the CommonJS export names for ESM import in node:
-0 && (module.exports = {
+export {
   ApiClient,
   LocalBackup,
   OpenClawScan,
@@ -435,4 +385,4 @@ var OpenClawScan = class {
   verifyHash,
   verifyReceipt,
   verifySignature
-});
+};

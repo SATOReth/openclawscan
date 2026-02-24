@@ -45,11 +45,12 @@ export function Nav() {
 
         {/* Desktop links */}
         <div className="hidden md:flex gap-4 items-center">
+          {link('/scan', 'scan')}
+          <span className="text-faint">│</span>
           {link('/dashboard', 'dashboard')}
           {link('/dashboard/tasks', 'tasks')}
           {link('/dashboard/agents', 'agents')}
           <span className="text-faint">│</span>
-          {link('/#pricing', 'pricing')}
           {link('/docs', 'docs')}
           {user ? (
             <button
@@ -76,11 +77,12 @@ export function Nav() {
       {/* Mobile menu */}
       {open && (
         <div className="md:hidden pt-3 pb-1 mt-3 border-t border-faint space-y-2.5">
+          {link('/scan', 'scan')}
+          <div className="h-px bg-faint" />
           {link('/dashboard', 'dashboard')}
           {link('/dashboard/tasks', 'tasks')}
           {link('/dashboard/agents', 'agents')}
           <div className="h-px bg-faint" />
-          {link('/#pricing', 'pricing')}
           {link('/docs', 'docs')}
           {user ? (
             <button

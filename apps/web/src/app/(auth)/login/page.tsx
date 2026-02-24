@@ -34,7 +34,7 @@ export default function LoginPage() {
     router.push('/dashboard');
   }
 
-  async function handleOAuth(provider: 'github' | 'google') {
+  async function handleOAuth(provider: 'github') {
     if (!sbRef.current) return;
     await sbRef.current.auth.signInWithOAuth({
       provider,
@@ -57,12 +57,6 @@ export default function LoginPage() {
             className="w-full py-2.5 text-[11px] font-bold text-bright bg-faint border border-ghost/30 hover:border-ghost transition-colors"
           >
             Continue with GitHub
-          </button>
-          <button
-            onClick={() => handleOAuth('google')}
-            className="w-full py-2.5 text-[11px] font-bold text-bright bg-faint border border-ghost/30 hover:border-ghost transition-colors"
-          >
-            Continue with Google
           </button>
 
           <div className="flex items-center gap-3 py-1">

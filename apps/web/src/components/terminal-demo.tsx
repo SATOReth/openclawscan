@@ -12,17 +12,18 @@ interface Line {
 }
 
 const LINES: Line[] = [
-  { prompt: '$', text: 'npx openclawscan init', color: '#f0f0f0', pause: 500 },
+  { prompt: '$', text: 'npm install @openclawscan/sdk', color: '#f0f0f0', pause: 500 },
+  { text: '', fast: true, pause: 50 },
+  { text: '  added 3 packages in 1.2s', color: '#666', pause: 400 },
+  { text: '', fast: true, pause: 50 },
+  { prompt: '$', text: 'node audit.mjs', color: '#f0f0f0', pause: 350 },
   { text: '', fast: true, pause: 50 },
   { text: '  ◈ OpenClawScan v1.0.0', color: '#22c55e', pause: 250 },
-  { text: '  Generating Ed25519 keypair......', color: '#666', pause: 350 },
+  { text: '  Generating Ed25519 keypair...', color: '#666', pause: 350 },
   { text: '  ✓ Keypair created', color: '#22c55e', pause: 150 },
   { text: '  ✓ Agent registered: sentinel-007', color: '#22c55e', pause: 150 },
-  { text: '  ✓ Config saved → .openclawscan/', color: '#22c55e', pause: 400 },
   { text: '', fast: true, pause: 50 },
-  { prompt: '$', text: "openclawscan start --task 'Audit TokenVault.sol'", color: '#f0f0f0', pause: 350 },
-  { text: '', fast: true, pause: 50 },
-  { text: '  ┌─ Task started ─────────────────────────┐', color: '#333', pause: 80 },
+  { text: '  ┌─ Task: Audit TokenVault.sol ────────────┐', color: '#333', pause: 80 },
   { text: '  │ #0  web_search   source_fetch      1.8s │ ✓', color: '#666', pause: 100 },
   { text: '  │ #1  file_read    TokenVault.sol     0.2s │ ✓', color: '#666', pause: 100 },
   { text: '  │ #2  tool_call    slither_analysis   8.4s │ ✓', color: '#666', pause: 100 },
@@ -33,7 +34,7 @@ const LINES: Line[] = [
   { text: '  └──────────────────────────────────────────┘', color: '#333', pause: 300 },
   { text: '', fast: true, pause: 50 },
   { text: '  ✓ 7 receipts · all signed · seq #0→#6', color: '#22c55e', pause: 200 },
-  { text: '  → openclawscan.xyz/task/a3f8c2b1', color: '#60a5fa', pause: 0 },
+  { text: '  → openclawscan.xyz/task/b29a6f30', color: '#60a5fa', pause: 0 },
 ];
 
 export function TerminalDemo() {

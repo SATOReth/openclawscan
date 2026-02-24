@@ -96,7 +96,7 @@ export default function Home() {
           {[
             { n: '01', t: 'Install', cmd: 'npm install @openclawscan/sdk', desc: 'One package. Generates Ed25519 keypair and registers your agent automatically.' },
             { n: '02', t: 'Capture', cmd: 'await scanner.capture({ action, model, input, output })', desc: 'Every action is hashed (SHA-256) and signed (Ed25519) in real-time.' },
-            { n: '03', t: 'Verify', cmd: '→ openclawscan.vercel.app/task/a3f8c2b1', desc: 'One link. Signatures verified in the browser. Your client sees everything.' },
+            { n: '03', t: 'Verify', cmd: '→ openclawscan.xyz/task/b29a6f30', desc: 'One link. Signatures verified in the browser. Your client sees everything.' },
           ].map((s, i) => (
             <div key={s.n} className={`py-4 ${i < 2 ? 'border-b border-faint' : ''}`}>
               <div className="flex gap-2.5 items-center mb-1.5">
@@ -126,7 +126,7 @@ export default function Home() {
 `┌──────────── HEADER ──────────────────┐
 │ receipt_id   rcpt_wyuc8de1qj93       │
 │ agent_id     sentinel-007            │
-│ task_id      a3f8c2b1                │
+│ task_id      b29a6f30                │
 │ sequence     #3                      │
 │ timestamp    2026-02-21T14:31:15Z    │
 ├──────────── ACTION ──────────────────┤
@@ -175,33 +175,14 @@ export default function Home() {
           <div className="text-center py-6">
             <p className="text-[28px] font-bold text-bright mb-1">Free. Forever.</p>
             <p className="text-[13px] text-dim mb-6 max-w-[500px] mx-auto leading-relaxed">
-              Unlimited agents. Unlimited receipts. Full API access. PDF export.
+              Unlimited agents. Unlimited receipts. Full API access.
               No tiers, no paywalls, no limits. Standards should be free.
             </p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-faint max-w-[600px] mx-auto mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-faint max-w-[600px] mx-auto">
               <Stat label="AGENTS" value="∞" color="#22c55e" />
               <Stat label="RECEIPTS" value="∞" color="#22c55e" />
               <Stat label="API" value="Full" color="#22c55e" />
               <Stat label="COST" value="$0" color="#22c55e" />
-            </div>
-            <div className="border border-faint p-4 max-w-[480px] mx-auto text-left bg-card">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-[8px] text-purple">██</span>
-                <span className="text-[12px] font-bold text-bright">Support the project</span>
-              </div>
-              <p className="text-[12px] text-dim leading-relaxed mb-3">
-                OpenClawScan is funded by the community. A support token lives on
-                Base L2 — no utility, no promises. Just a way to back the protocol
-                if you believe in verifiable AI.
-              </p>
-              <a
-                href="https://basescan.org/token/OCS_TOKEN_ADDRESS"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block text-[13px] font-bold text-accent border border-accent/30 px-3 py-1.5 bg-accent/[.05] hover:bg-accent/[.1] transition-colors"
-              >
-                $OCS on Base →
-              </a>
             </div>
           </div>
         </TBox>

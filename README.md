@@ -40,7 +40,7 @@ await scanner.capture({
   output: scanResults,     // → SHA-256 hashed
 })
 
-// → https://openclawscan.xyz/task/a3f8c2b1
+// → https://openclawscan.xyz/task/b29a6f30
 ```
 
 ## Features
@@ -51,7 +51,6 @@ await scanner.capture({
 - **One-link proof** — share a URL, verify everything in the browser
 - **Local backup** — receipts saved to `~/.openclawscan/` before transmission
 - **Time verified** — server timestamp, drift >5min flagged
-- **PDF export** — full audit report with hashes and signatures
 - **Task grouping** — group receipts by task, share as one link
 - **Completely free** — no limits, no tiers, no paywalls
 
@@ -78,8 +77,7 @@ Public verification: /receipt/[id] or /task/[slug]
 ```
 openclawscan/
 ├── packages/
-│   ├── sdk/          # @openclawscan/sdk — crypto, receipts, API client
-│   └── verify/       # @openclawscan/verify — standalone verification
+│   └── sdk/          # @openclawscan/sdk — crypto, receipts, API client
 ├── apps/
 │   └── web/          # Next.js 14 app — dashboard, API, explorer
 ├── contracts/        # Solidity (future: on-chain anchoring)
@@ -94,12 +92,8 @@ openclawscan/
 | Frontend | Next.js 14, React 18, TailwindCSS |
 | Backend | Next.js API Routes (serverless) |
 | Database | PostgreSQL (Supabase) |
-| Auth | Supabase Auth (email + GitHub + Google) |
+| Auth | Supabase Auth (email + GitHub) |
 | Hosting | Vercel |
-
-## Part of ClawControl
-
-OpenClawScan is the verification layer of **ClawControl** — the unified platform for OpenClaw agent owners. ClawControl provides Build, Costs, Security, Work, Community, and Verify (powered by OCS).
 
 ## License
 

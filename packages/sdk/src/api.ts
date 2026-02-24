@@ -50,18 +50,6 @@ export class ApiClient {
   async submitReceipt(receipt: SignedReceipt): Promise<SubmitReceiptResponse> {
     return this.request<SubmitReceiptResponse>('POST', '/receipts', receipt);
   }
-
-  /**
-   * Submit multiple receipts in a batch.
-   */
-  async submitBatch(
-    receipts: SignedReceipt[]
-  ): Promise<SubmitReceiptResponse[]> {
-    return this.request<SubmitReceiptResponse[]>('POST', '/receipts/batch', {
-      receipts,
-    });
-  }
-
   /**
    * Create a new task (group of receipts).
    */
