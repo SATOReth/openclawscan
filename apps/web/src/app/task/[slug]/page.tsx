@@ -301,7 +301,7 @@ export default function TaskPage() {
           <Stat label="ACTIONS" value={String(task.total_receipts)} />
           <Stat label="DURATION" value={formatDuration(task.total_duration_ms)} />
           <Stat label="COST" value={formatCost(task.total_cost_usd)} />
-          <Stat label="STATUS" value={task.status.toUpperCase()} accent={task.status === 'completed'} />
+          <Stat label="TOKENS" value={formatTokens(task.total_tokens)} />
         </div>
       </div>
 
