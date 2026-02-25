@@ -88,6 +88,7 @@ type ReceiptSignature = z.infer<typeof ReceiptSignature>;
 /**
  * The core receipt payload — the data that gets signed.
  * Signature is NOT included in the signed payload (it's added after).
+ * Encrypted fields are NOT part of the signed payload either.
  */
 declare const ReceiptPayload: z.ZodObject<{
     version: z.ZodLiteral<"1.0">;
@@ -385,6 +386,183 @@ declare const SignedReceipt: z.ZodObject<{
     server_received_at?: string | null | undefined;
 }>;
 type SignedReceipt = z.infer<typeof SignedReceipt>;
+/**
+ * v1.1: A signed receipt with optional E2E encrypted fields.
+ * The encrypted fields are transport-only — they are NOT part
+ * of the signed payload (the hashes in the payload verify them).
+ *
+ * Flow:
+ *   1. SHA-256(raw_input) → hashes.input_sha256 (in signed payload)
+ *   2. AES-GCM-encrypt(raw_input, viewing_key) → encrypted_input (transport)
+ *   3. Verifier decrypts → SHA-256(decrypted) must match hashes.input_sha256
+ */
+declare const EncryptedReceipt: z.ZodObject<{
+    version: z.ZodLiteral<"1.0">;
+    receipt_id: z.ZodString;
+    agent_id: z.ZodString;
+    owner_id: z.ZodString;
+    timestamp: z.ZodString;
+    action: z.ZodObject<{
+        type: z.ZodEnum<["tool_call", "file_write", "file_read", "api_request", "message_send", "skill_exec", "code_exec", "web_search", "model_call"]>;
+        name: z.ZodString;
+        duration_ms: z.ZodNumber;
+    }, "strip", z.ZodTypeAny, {
+        type: "tool_call" | "file_write" | "file_read" | "api_request" | "message_send" | "skill_exec" | "code_exec" | "web_search" | "model_call";
+        name: string;
+        duration_ms: number;
+    }, {
+        type: "tool_call" | "file_write" | "file_read" | "api_request" | "message_send" | "skill_exec" | "code_exec" | "web_search" | "model_call";
+        name: string;
+        duration_ms: number;
+    }>;
+    model: z.ZodObject<{
+        provider: z.ZodString;
+        name: z.ZodString;
+        tokens_in: z.ZodNumber;
+        tokens_out: z.ZodNumber;
+    }, "strip", z.ZodTypeAny, {
+        name: string;
+        provider: string;
+        tokens_in: number;
+        tokens_out: number;
+    }, {
+        name: string;
+        provider: string;
+        tokens_in: number;
+        tokens_out: number;
+    }>;
+    cost: z.ZodObject<{
+        amount_usd: z.ZodNumber;
+        was_routed: z.ZodDefault<z.ZodBoolean>;
+    }, "strip", z.ZodTypeAny, {
+        amount_usd: number;
+        was_routed: boolean;
+    }, {
+        amount_usd: number;
+        was_routed?: boolean | undefined;
+    }>;
+    hashes: z.ZodObject<{
+        input_sha256: z.ZodString;
+        output_sha256: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        input_sha256: string;
+        output_sha256: string;
+    }, {
+        input_sha256: string;
+        output_sha256: string;
+    }>;
+    context: z.ZodObject<{
+        task_id: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+        session_id: z.ZodString;
+        sequence: z.ZodNumber;
+    }, "strip", z.ZodTypeAny, {
+        task_id: string | null;
+        session_id: string;
+        sequence: number;
+    }, {
+        session_id: string;
+        sequence: number;
+        task_id?: string | null | undefined;
+    }>;
+    visibility: z.ZodDefault<z.ZodEnum<["private", "task_only", "public"]>>;
+} & {
+    signature: z.ZodObject<{
+        algorithm: z.ZodLiteral<"ed25519">;
+        public_key: z.ZodString;
+        value: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        value: string;
+        algorithm: "ed25519";
+        public_key: string;
+    }, {
+        value: string;
+        algorithm: "ed25519";
+        public_key: string;
+    }>;
+    server_received_at: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+} & {
+    encrypted_input: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+    encrypted_output: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+}, "strip", z.ZodTypeAny, {
+    version: "1.0";
+    receipt_id: string;
+    agent_id: string;
+    owner_id: string;
+    timestamp: string;
+    action: {
+        type: "tool_call" | "file_write" | "file_read" | "api_request" | "message_send" | "skill_exec" | "code_exec" | "web_search" | "model_call";
+        name: string;
+        duration_ms: number;
+    };
+    model: {
+        name: string;
+        provider: string;
+        tokens_in: number;
+        tokens_out: number;
+    };
+    cost: {
+        amount_usd: number;
+        was_routed: boolean;
+    };
+    hashes: {
+        input_sha256: string;
+        output_sha256: string;
+    };
+    context: {
+        task_id: string | null;
+        session_id: string;
+        sequence: number;
+    };
+    visibility: "private" | "task_only" | "public";
+    signature: {
+        value: string;
+        algorithm: "ed25519";
+        public_key: string;
+    };
+    server_received_at: string | null;
+    encrypted_input: string | null;
+    encrypted_output: string | null;
+}, {
+    version: "1.0";
+    receipt_id: string;
+    agent_id: string;
+    owner_id: string;
+    timestamp: string;
+    action: {
+        type: "tool_call" | "file_write" | "file_read" | "api_request" | "message_send" | "skill_exec" | "code_exec" | "web_search" | "model_call";
+        name: string;
+        duration_ms: number;
+    };
+    model: {
+        name: string;
+        provider: string;
+        tokens_in: number;
+        tokens_out: number;
+    };
+    cost: {
+        amount_usd: number;
+        was_routed?: boolean | undefined;
+    };
+    hashes: {
+        input_sha256: string;
+        output_sha256: string;
+    };
+    context: {
+        session_id: string;
+        sequence: number;
+        task_id?: string | null | undefined;
+    };
+    signature: {
+        value: string;
+        algorithm: "ed25519";
+        public_key: string;
+    };
+    visibility?: "private" | "task_only" | "public" | undefined;
+    server_received_at?: string | null | undefined;
+    encrypted_input?: string | null | undefined;
+    encrypted_output?: string | null | undefined;
+}>;
+type EncryptedReceipt = z.infer<typeof EncryptedReceipt>;
 interface KeyPair {
     publicKey: Uint8Array;
     secretKey: Uint8Array;
@@ -425,6 +603,14 @@ interface TaskCreate {
     name: string;
     description?: string;
 }
+/**
+ * v1.1: Task creation with E2E encryption support.
+ * key_hash allows the server to confirm key correctness
+ * without ever seeing the actual viewing key.
+ */
+interface EncryptedTaskCreate extends TaskCreate {
+    key_hash: string;
+}
 interface TaskInfo {
     task_id: string;
     slug: string;
@@ -433,6 +619,7 @@ interface TaskInfo {
     total_receipts: number;
     total_duration_ms: number;
     total_cost_usd: number;
+    key_hash?: string | null;
 }
 
 /**
@@ -472,18 +659,33 @@ declare class ReceiptBuilder {
     private sessionId;
     private sequence;
     private defaultVisibility;
+    private viewingKey;
     constructor(config: {
         agentId: string;
         ownerId: string;
         secretKey: string;
         sessionId?: string;
         defaultVisibility?: Visibility;
+        viewingKey?: string;
     });
     /**
      * Build and sign a receipt from action input.
-     * The raw input/output are hashed — only hashes are stored in the receipt.
+     * The raw input/output are hashed — only hashes are stored in the signed payload.
+     *
+     * v1.1: If a viewing key is set, also encrypts raw input/output with AES-256-GCM.
+     * The encrypted fields are NOT part of the signed payload — they're transport-only.
+     * Verification: decrypt(encrypted_input) → SHA-256 must match hashes.input_sha256
      */
-    build(input: ReceiptInput): SignedReceipt;
+    build(input: ReceiptInput): EncryptedReceipt;
+    /**
+     * Set or update the viewing key for E2E encryption.
+     * Called when starting a new encrypted task.
+     */
+    setViewingKey(key: string | null): void;
+    /**
+     * Check if E2E encryption is active.
+     */
+    hasViewingKey(): boolean;
     /**
      * Get current session ID.
      */
@@ -539,6 +741,47 @@ declare function verifyReceipt(receipt: {
     signatureValid: boolean;
     hashMatch: boolean | null;
 };
+/**
+ * Generate a random AES-256-GCM viewing key for a task.
+ * Returns a base64url-encoded 32-byte key (URL-safe, no padding).
+ *
+ * This key goes in the URL fragment: /task/slug#key=THIS_VALUE
+ * The fragment is never sent to the server (per HTTP spec).
+ */
+declare function generateViewingKey(): string;
+/**
+ * Encrypt a plaintext string with AES-256-GCM.
+ *
+ * @param plaintext - The raw data to encrypt (input or output string)
+ * @param viewingKeyBase64Url - The task's viewing key (base64url)
+ * @returns base64-encoded blob: IV (12B) || ciphertext || authTag (16B)
+ */
+declare function encryptField(plaintext: string, viewingKeyBase64Url: string): string;
+/**
+ * Decrypt an AES-256-GCM encrypted blob back to plaintext.
+ *
+ * @param encryptedBase64 - base64-encoded blob: IV (12B) || ciphertext || authTag (16B)
+ * @param viewingKeyBase64Url - The task's viewing key (base64url)
+ * @returns The original plaintext string
+ * @throws Error if decryption fails (wrong key, tampered data)
+ */
+declare function decryptField(encryptedBase64: string, viewingKeyBase64Url: string): string;
+/**
+ * Hash the viewing key with SHA-256.
+ * Stored in tasks.key_hash so the frontend can verify
+ * the user has the correct key BEFORE attempting decryption.
+ *
+ * The server never sees the actual key — only this hash.
+ */
+declare function hashViewingKey(viewingKeyBase64Url: string): string;
+/**
+ * Convert raw bytes to base64url string (no padding).
+ */
+declare function toBase64Url(buffer: Buffer | Uint8Array): string;
+/**
+ * Convert base64url string back to Buffer.
+ */
+declare function fromBase64Url(base64url: string): Buffer;
 
 /**
  * Local receipt backup.
@@ -577,16 +820,25 @@ declare class ApiClient {
     private request;
     /**
      * Submit a signed receipt to the server.
+     * v1.1: Also sends encrypted_input/encrypted_output if present.
      */
-    submitReceipt(receipt: SignedReceipt): Promise<SubmitReceiptResponse>;
+    submitReceipt(receipt: SignedReceipt | EncryptedReceipt): Promise<SubmitReceiptResponse>;
+    /**
+     * Submit multiple receipts in a batch.
+     */
+    submitBatch(receipts: (SignedReceipt | EncryptedReceipt)[]): Promise<SubmitReceiptResponse[]>;
     /**
      * Create a new task (group of receipts).
+     * v1.1: Can include key_hash for E2E encrypted tasks.
      */
-    createTask(task: TaskCreate): Promise<TaskInfo>;
+    createTask(task: TaskCreate | EncryptedTaskCreate): Promise<TaskInfo>;
     /**
      * Complete a task and get the shareable URL.
+     * v1.1: Can include encrypted_summary.
      */
-    completeTask(taskId: string): Promise<TaskInfo>;
+    completeTask(taskId: string, options?: {
+        encrypted_summary?: string;
+    }): Promise<TaskInfo>;
     /**
      * Get task info.
      */
@@ -594,38 +846,43 @@ declare class ApiClient {
 }
 
 /**
- * OpenClawScan SDK
+ * OpenClawScan SDK v1.1
  *
  * Cryptographically signed receipts for AI agent actions.
+ * Now with E2E encryption — raw input/output encrypted client-side,
+ * server stores only encrypted blobs + SHA-256 hashes.
  *
- * Usage:
+ * === v1.0 Usage (hash-only, backward compatible): ===
  *
- *   import { OpenClawScan, generateKeyPair, serializeKeyPair } from '@openclawscan/sdk';
- *
- *   // First time: generate keys
- *   const keys = generateKeyPair();
- *   const serialized = serializeKeyPair(keys);
- *   // Save serialized.secretKey securely!
- *
- *   // Initialize
  *   const scanner = new OpenClawScan({
  *     agentId: 'my-agent',
  *     ownerId: 'github:myuser',
  *     secretKey: serialized.secretKey,
  *   });
  *
- *   // Generate a receipt
- *   const receipt = scanner.capture({
- *     action: { type: 'tool_call', name: 'web_search', duration_ms: 1200 },
- *     model: { provider: 'anthropic', name: 'claude-sonnet-4-5', tokens_in: 500, tokens_out: 1200 },
- *     cost: { amount_usd: 0.015 },
- *     input: 'search query text',
- *     output: 'search results text',
+ *   const receipt = await scanner.capture({ ... });
+ *
+ * === v1.1 Usage (E2E encrypted): ===
+ *
+ *   const scanner = new OpenClawScan({
+ *     agentId: 'my-agent',
+ *     ownerId: 'github:myuser',
+ *     secretKey: serialized.secretKey,
  *   });
  *
- *   // Verify a receipt
- *   const result = OpenClawScan.verify(receipt, 'search results text');
- *   // { signatureValid: true, hashMatch: true }
+ *   // Start an encrypted task — generates a viewing key automatically
+ *   const { taskInfo, viewingKey } = await scanner.startEncryptedTask({
+ *     agent_id: 'my-agent',
+ *     name: 'Smart Contract Audit',
+ *   });
+ *
+ *   // Capture actions — auto-encrypted with task's viewing key
+ *   await scanner.capture({ ... });
+ *
+ *   // Complete and share — key goes in URL fragment (never sent to server)
+ *   const completed = await scanner.completeTask();
+ *   const shareUrl = `${completed.share_url}#key=${viewingKey}`;
+ *   // → https://openclawscan.xyz/task/abc123#key=BASE64URL_KEY
  */
 
 declare class OpenClawScan {
@@ -634,25 +891,57 @@ declare class OpenClawScan {
     private api;
     private config;
     private activeTaskId;
+    private activeViewingKey;
     constructor(config: OpenClawScanConfig);
     /**
      * Capture an action and generate a signed receipt.
      * The receipt is saved locally and optionally sent to the server.
+     *
+     * v1.1: If an encrypted task is active, raw input/output are also
+     * encrypted with AES-256-GCM before being sent to the server.
      */
-    capture(input: ReceiptInput): Promise<SignedReceipt>;
+    capture(input: ReceiptInput): Promise<EncryptedReceipt>;
     /**
      * Capture an action synchronously (no server submission).
      * Useful for high-frequency actions where you don't want to wait for HTTP.
      */
-    captureSync(input: ReceiptInput): SignedReceipt;
+    captureSync(input: ReceiptInput): EncryptedReceipt;
     /**
-     * Start a new task. All subsequent receipts will be grouped under this task.
+     * Start a new task (v1.0 — no encryption).
+     * All subsequent receipts will be grouped under this task.
      */
     startTask(task: TaskCreate): Promise<TaskInfo>;
     /**
-     * Complete the active task and get a shareable link.
+     * v1.1: Start a new E2E encrypted task.
+     * Generates a random AES-256-GCM viewing key automatically.
+     * All subsequent receipts will have their input/output encrypted.
+     *
+     * Returns both the task info and the viewing key.
+     * The viewing key is for the share URL: /task/slug#key=VIEWING_KEY
+     *
+     * IMPORTANT: Store the viewing key! It's not recoverable from the server.
      */
-    completeTask(): Promise<TaskInfo>;
+    startEncryptedTask(task: TaskCreate): Promise<{
+        taskInfo: TaskInfo;
+        viewingKey: string;
+    }>;
+    /**
+     * Complete the active task and get a shareable link.
+     * v1.1: Can include an encrypted summary of the task results.
+     */
+    completeTask(summary?: string): Promise<TaskInfo>;
+    /**
+     * Get the viewing key for the currently active encrypted task.
+     * Returns null if no encrypted task is active or if using v1.0 mode.
+     *
+     * Use this to build the share URL:
+     *   `${taskInfo.share_url}#key=${scanner.getViewingKey()}`
+     */
+    getViewingKey(): string | null;
+    /**
+     * Check if E2E encryption is currently active.
+     */
+    isEncrypted(): boolean;
     /**
      * Get current session ID.
      */
@@ -675,4 +964,4 @@ declare class OpenClawScan {
     };
 }
 
-export { ActionType, ApiClient, type KeyPair, LocalBackup, OpenClawScan, type OpenClawScanConfig, ReceiptAction, ReceiptBuilder, ReceiptContext, ReceiptCost, ReceiptHashes, type ReceiptInput, ReceiptModel, ReceiptPayload, ReceiptSignature, type SerializedKeyPair, SignedReceipt, type SubmitReceiptResponse, type TaskCreate, type TaskInfo, type VerifyResult, Visibility, deserializeKeyPair, generateKeyPair, generateReceiptId, generateSessionId, publicKeyFromSecret, serializeKeyPair, sha256, verifyHash, verifyReceipt, verifySignature };
+export { ActionType, ApiClient, EncryptedReceipt, type EncryptedTaskCreate, type KeyPair, LocalBackup, OpenClawScan, type OpenClawScanConfig, ReceiptAction, ReceiptBuilder, ReceiptContext, ReceiptCost, ReceiptHashes, type ReceiptInput, ReceiptModel, ReceiptPayload, ReceiptSignature, type SerializedKeyPair, SignedReceipt, type SubmitReceiptResponse, type TaskCreate, type TaskInfo, type VerifyResult, Visibility, decryptField, deserializeKeyPair, encryptField, fromBase64Url, generateKeyPair, generateReceiptId, generateSessionId, generateViewingKey, hashViewingKey, publicKeyFromSecret, serializeKeyPair, sha256, toBase64Url, verifyHash, verifyReceipt, verifySignature };

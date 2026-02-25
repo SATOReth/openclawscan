@@ -1,10 +1,10 @@
 // src/receipt.ts
-import { randomBytes } from "crypto";
+import { randomBytes as randomBytes2 } from "crypto";
 
 // src/crypto.ts
 import nacl from "tweetnacl";
 import { encodeBase64, decodeBase64 } from "tweetnacl-util";
-import { createHash } from "crypto";
+import { createHash, randomBytes, createCipheriv, createDecipheriv } from "crypto";
 function generateKeyPair() {
   const kp = nacl.sign.keyPair();
   return {
@@ -80,11 +80,60 @@ function verifyReceipt(receipt, originalOutput) {
   }
   return { signatureValid, hashMatch };
 }
+function generateViewingKey() {
+  const key = randomBytes(32);
+  return toBase64Url(key);
+}
+function encryptField(plaintext, viewingKeyBase64Url) {
+  const key = fromBase64Url(viewingKeyBase64Url);
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", key, iv);
+  const plaintextBytes = Buffer.from(plaintext, "utf8");
+  const encrypted = Buffer.concat([
+    cipher.update(plaintextBytes),
+    cipher.final()
+  ]);
+  const authTag = cipher.getAuthTag();
+  const blob = Buffer.concat([iv, encrypted, authTag]);
+  return blob.toString("base64");
+}
+function decryptField(encryptedBase64, viewingKeyBase64Url) {
+  const key = fromBase64Url(viewingKeyBase64Url);
+  const blob = Buffer.from(encryptedBase64, "base64");
+  if (blob.length < 28) {
+    throw new Error("Encrypted blob too short \u2014 invalid format");
+  }
+  const iv = blob.subarray(0, 12);
+  const authTag = blob.subarray(blob.length - 16);
+  const ciphertext = blob.subarray(12, blob.length - 16);
+  const decipher = createDecipheriv("aes-256-gcm", key, iv);
+  decipher.setAuthTag(authTag);
+  const decrypted = Buffer.concat([
+    decipher.update(ciphertext),
+    decipher.final()
+    // throws if authTag mismatch (tampered!)
+  ]);
+  return decrypted.toString("utf8");
+}
+function hashViewingKey(viewingKeyBase64Url) {
+  return createHash("sha256").update(viewingKeyBase64Url, "utf8").digest("hex");
+}
+function toBase64Url(buffer) {
+  const buf = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
+  return buf.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function fromBase64Url(base64url) {
+  let b64 = base64url.replace(/-/g, "+").replace(/_/g, "/");
+  while (b64.length % 4 !== 0) {
+    b64 += "=";
+  }
+  return Buffer.from(b64, "base64");
+}
 
 // src/receipt.ts
 function generateReceiptId() {
   const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-  const bytes = randomBytes(12);
+  const bytes = randomBytes2(12);
   let id = "rcpt_";
   for (let i = 0; i < 12; i++) {
     id += chars[bytes[i] % chars.length];
@@ -93,7 +142,7 @@ function generateReceiptId() {
 }
 function generateSessionId() {
   const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-  const bytes = randomBytes(8);
+  const bytes = randomBytes2(8);
   let id = "sess_";
   for (let i = 0; i < 8; i++) {
     id += chars[bytes[i] % chars.length];
@@ -108,10 +157,15 @@ var ReceiptBuilder = class {
     this.sessionId = config.sessionId || generateSessionId();
     this.sequence = 0;
     this.defaultVisibility = config.defaultVisibility || "private";
+    this.viewingKey = config.viewingKey || null;
   }
   /**
    * Build and sign a receipt from action input.
-   * The raw input/output are hashed — only hashes are stored in the receipt.
+   * The raw input/output are hashed — only hashes are stored in the signed payload.
+   * 
+   * v1.1: If a viewing key is set, also encrypts raw input/output with AES-256-GCM.
+   * The encrypted fields are NOT part of the signed payload — they're transport-only.
+   * Verification: decrypt(encrypted_input) → SHA-256 must match hashes.input_sha256
    */
   build(input) {
     const receiptId = generateReceiptId();
@@ -152,12 +206,33 @@ var ReceiptBuilder = class {
       visibility: input.visibility ?? this.defaultVisibility
     };
     const signature = signPayload(payload, this.secretKey);
-    const signedReceipt = {
+    let encrypted_input = null;
+    let encrypted_output = null;
+    if (this.viewingKey) {
+      encrypted_input = encryptField(input.input, this.viewingKey);
+      encrypted_output = encryptField(input.output, this.viewingKey);
+    }
+    const receipt = {
       ...payload,
       signature,
-      server_received_at: null
+      server_received_at: null,
+      encrypted_input,
+      encrypted_output
     };
-    return signedReceipt;
+    return receipt;
+  }
+  /**
+   * Set or update the viewing key for E2E encryption.
+   * Called when starting a new encrypted task.
+   */
+  setViewingKey(key) {
+    this.viewingKey = key;
+  }
+  /**
+   * Check if E2E encryption is active.
+   */
+  hasViewingKey() {
+    return this.viewingKey !== null;
   }
   /**
    * Get current session ID.
@@ -247,22 +322,37 @@ var ApiClient = class {
   }
   /**
    * Submit a signed receipt to the server.
+   * v1.1: Also sends encrypted_input/encrypted_output if present.
    */
   async submitReceipt(receipt) {
     return this.request("POST", "/receipts", receipt);
   }
   /**
+   * Submit multiple receipts in a batch.
+   */
+  async submitBatch(receipts) {
+    return this.request("POST", "/receipts/batch", {
+      receipts
+    });
+  }
+  /**
    * Create a new task (group of receipts).
+   * v1.1: Can include key_hash for E2E encrypted tasks.
    */
   async createTask(task) {
     return this.request("POST", "/tasks", task);
   }
   /**
    * Complete a task and get the shareable URL.
+   * v1.1: Can include encrypted_summary.
    */
-  async completeTask(taskId) {
-    return this.request("PATCH", `/tasks/${taskId}`, {
-      status: "completed"
+  async completeTask(taskId, options) {
+    return this.request("PATCH", "/tasks", {
+      task_id: taskId,
+      status: "completed",
+      ...options?.encrypted_summary && {
+        encrypted_summary: options.encrypted_summary
+      }
     });
   }
   /**
@@ -277,6 +367,7 @@ var ApiClient = class {
 var OpenClawScan = class {
   constructor(config) {
     this.activeTaskId = null;
+    this.activeViewingKey = null;
     this.config = config;
     this.builder = new ReceiptBuilder({
       agentId: config.agentId,
@@ -290,6 +381,9 @@ var OpenClawScan = class {
   /**
    * Capture an action and generate a signed receipt.
    * The receipt is saved locally and optionally sent to the server.
+   * 
+   * v1.1: If an encrypted task is active, raw input/output are also
+   * encrypted with AES-256-GCM before being sent to the server.
    */
   async capture(input) {
     if (this.activeTaskId && !input.task_id) {
@@ -325,25 +419,78 @@ var OpenClawScan = class {
     }
     return receipt;
   }
+  // ─── Task Management ──────────────────────────────────────
   /**
-   * Start a new task. All subsequent receipts will be grouped under this task.
+   * Start a new task (v1.0 — no encryption).
+   * All subsequent receipts will be grouped under this task.
    */
   async startTask(task) {
     const info = await this.api.createTask(task);
     this.activeTaskId = info.task_id;
+    this.activeViewingKey = null;
+    this.builder.setViewingKey(null);
     return info;
   }
   /**
-   * Complete the active task and get a shareable link.
+   * v1.1: Start a new E2E encrypted task.
+   * Generates a random AES-256-GCM viewing key automatically.
+   * All subsequent receipts will have their input/output encrypted.
+   * 
+   * Returns both the task info and the viewing key.
+   * The viewing key is for the share URL: /task/slug#key=VIEWING_KEY
+   * 
+   * IMPORTANT: Store the viewing key! It's not recoverable from the server.
    */
-  async completeTask() {
+  async startEncryptedTask(task) {
+    const viewingKey = generateViewingKey();
+    const keyHash = hashViewingKey(viewingKey);
+    const encryptedTask = {
+      ...task,
+      key_hash: keyHash
+    };
+    const taskInfo = await this.api.createTask(encryptedTask);
+    this.activeTaskId = taskInfo.task_id;
+    this.activeViewingKey = viewingKey;
+    this.builder.setViewingKey(viewingKey);
+    return { taskInfo, viewingKey };
+  }
+  /**
+   * Complete the active task and get a shareable link.
+   * v1.1: Can include an encrypted summary of the task results.
+   */
+  async completeTask(summary) {
     if (!this.activeTaskId) {
       throw new Error("No active task to complete");
     }
-    const info = await this.api.completeTask(this.activeTaskId);
+    let encrypted_summary;
+    if (summary && this.activeViewingKey) {
+      encrypted_summary = encryptField(summary, this.activeViewingKey);
+    }
+    const info = await this.api.completeTask(this.activeTaskId, {
+      encrypted_summary
+    });
     this.activeTaskId = null;
+    this.activeViewingKey = null;
+    this.builder.setViewingKey(null);
     return info;
   }
+  /**
+   * Get the viewing key for the currently active encrypted task.
+   * Returns null if no encrypted task is active or if using v1.0 mode.
+   * 
+   * Use this to build the share URL:
+   *   `${taskInfo.share_url}#key=${scanner.getViewingKey()}`
+   */
+  getViewingKey() {
+    return this.activeViewingKey;
+  }
+  /**
+   * Check if E2E encryption is currently active.
+   */
+  isEncrypted() {
+    return this.activeViewingKey !== null;
+  }
+  // ─── Session Management ───────────────────────────────────
   /**
    * Get current session ID.
    */
@@ -362,6 +509,7 @@ var OpenClawScan = class {
   getBackupPath() {
     return this.backup.getPath();
   }
+  // ─── Static Verification ──────────────────────────────────
   /**
    * Verify a signed receipt (static method — no instance needed).
    * Anyone can verify a receipt without an API key or server.
@@ -375,13 +523,19 @@ export {
   LocalBackup,
   OpenClawScan,
   ReceiptBuilder,
+  decryptField,
   deserializeKeyPair,
+  encryptField,
+  fromBase64Url,
   generateKeyPair,
   generateReceiptId,
   generateSessionId,
+  generateViewingKey,
+  hashViewingKey,
   publicKeyFromSecret,
   serializeKeyPair,
   sha256,
+  toBase64Url,
   verifyHash,
   verifyReceipt,
   verifySignature
