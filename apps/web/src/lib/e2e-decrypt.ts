@@ -18,9 +18,9 @@
 // ─── Base64url helpers ────────────────────────────────────
 
 /**
- * Convert base64url string (URL-safe, no padding) to Uint8Array.
+ * Convert base64url string (URL-safe, no padding) to ArrayBuffer.
  */
-function fromBase64Url(base64url: string): Uint8Array {
+function fromBase64Url(base64url: string): ArrayBuffer {
   let b64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
   while (b64.length % 4 !== 0) {
     b64 += '=';
@@ -30,19 +30,19 @@ function fromBase64Url(base64url: string): Uint8Array {
   for (let i = 0; i < binary.length; i++) {
     bytes[i] = binary.charCodeAt(i);
   }
-  return bytes;
+  return bytes.buffer as ArrayBuffer;
 }
 
 /**
- * Convert standard base64 string to Uint8Array.
+ * Convert standard base64 string to ArrayBuffer.
  */
-function fromBase64(base64: string): Uint8Array {
+function fromBase64(base64: string): ArrayBuffer {
   const binary = atob(base64);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) {
     bytes[i] = binary.charCodeAt(i);
   }
-  return bytes;
+  return bytes.buffer as ArrayBuffer;
 }
 
 // ─── Key Management ───────────────────────────────────────
@@ -74,7 +74,7 @@ export async function verifyKeyHash(
 ): Promise<boolean> {
   const encoder = new TextEncoder();
   const keyBytes = encoder.encode(viewingKeyBase64Url);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', keyBytes);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', keyBytes.buffer as ArrayBuffer);
   const hashArray = new Uint8Array(hashBuffer);
   const hashHex = Array.from(hashArray)
     .map((b) => b.toString(16).padStart(2, '0'))
@@ -86,10 +86,10 @@ export async function verifyKeyHash(
  * Import the viewing key as a CryptoKey for AES-256-GCM.
  */
 async function importViewingKey(viewingKeyBase64Url: string): Promise<CryptoKey> {
-  const keyBytes = fromBase64Url(viewingKeyBase64Url);
+  const keyBuffer = fromBase64Url(viewingKeyBase64Url);
   return crypto.subtle.importKey(
     'raw',
-    keyBytes,
+    keyBuffer,
     { name: 'AES-GCM' },
     false,
     ['decrypt']
@@ -111,7 +111,8 @@ export async function decryptReceiptField(
   encryptedBase64: string,
   viewingKeyBase64Url: string
 ): Promise<string> {
-  const blob = fromBase64(encryptedBase64);
+  const blobBuffer = fromBase64(encryptedBase64);
+  const blob = new Uint8Array(blobBuffer);
 
   if (blob.length < 28) {
     throw new Error('Encrypted blob too short — invalid format');
@@ -127,11 +128,10 @@ export async function decryptReceiptField(
   const decryptedBuffer = await crypto.subtle.decrypt(
     {
       name: 'AES-GCM',
-      iv: iv,
-      // tagLength defaults to 128 bits (16 bytes) — matches our format
+      iv: iv.buffer as ArrayBuffer,
     },
     cryptoKey,
-    ciphertextWithTag
+    ciphertextWithTag.buffer as ArrayBuffer
   );
 
   return new TextDecoder().decode(decryptedBuffer);
@@ -146,7 +146,8 @@ export async function decryptReceiptField(
  */
 export async function sha256Browser(data: string): Promise<string> {
   const encoder = new TextEncoder();
-  const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(data));
+  const dataBytes = encoder.encode(data);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', dataBytes.buffer as ArrayBuffer);
   const hashArray = new Uint8Array(hashBuffer);
   return Array.from(hashArray)
     .map((b) => b.toString(16).padStart(2, '0'))
