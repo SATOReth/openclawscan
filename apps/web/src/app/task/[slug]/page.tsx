@@ -6,6 +6,14 @@ import Link from 'next/link';
 import { TBox, Stat, StatusBadge, BackBtn, Skeleton, Empty } from '@/components/ui';
 import nacl from 'tweetnacl';
 import { decodeBase64 } from 'tweetnacl-util';
+import {
+  extractViewingKey,
+  verifyKeyHash,
+  decryptAndVerify,
+  decryptReceiptField,
+  detectEncryptionLevel,
+  type DecryptedReceiptField,
+} from '@/lib/e2e-decrypt';
 
 interface Receipt {
   receipt_id: string;
@@ -18,6 +26,9 @@ interface Receipt {
   sequence: number;
   signature: { algorithm: string; public_key: string; value: string };
   signed_payload: Record<string, unknown> | null;
+  // v1.1: E2E encrypted fields
+  encrypted_input: string | null;
+  encrypted_output: string | null;
 }
 
 interface TaskData {
@@ -30,6 +41,9 @@ interface TaskData {
   total_duration_ms: number;
   total_cost_usd: number;
   total_tokens: number;
+  // v1.1: E2E fields
+  key_hash: string | null;
+  encrypted_summary: string | null;
   agent: { id: string; name: string };
   owner: { name: string };
 }
@@ -40,6 +54,12 @@ interface VerificationResult {
   failed: number;
   done: boolean;
   results: Map<string, boolean>;
+}
+
+// v1.1: Decrypted content cache
+interface DecryptedContent {
+  input: DecryptedReceiptField | null;
+  output: DecryptedReceiptField | null;
 }
 
 // ── Client-side Ed25519 verification ────────────────────────
@@ -62,7 +82,6 @@ function verifyReceiptClientSide(receipt: Receipt): boolean {
     const publicKey = decodeBase64(receipt.signature.public_key);
     const signatureBytes = decodeBase64(receipt.signature.value);
 
-    // Reconstruct the exact bytes that were signed
     const sorted = deepSortKeys(receipt.signed_payload);
     const json = JSON.stringify(sorted);
     const messageBytes = new TextEncoder().encode(json);
@@ -108,6 +127,14 @@ export default function TaskPage() {
   });
   const [error, setError] = useState('');
 
+  // v1.1: E2E decryption state
+  const [viewingKey, setViewingKey] = useState<string | null>(null);
+  const [keyValid, setKeyValid] = useState<boolean | null>(null); // null = not checked
+  const [decryptedMap, setDecryptedMap] = useState<Map<string, DecryptedContent>>(new Map());
+  const [decryptedSummary, setDecryptedSummary] = useState<string | null>(null);
+  const [expandedReceipt, setExpandedReceipt] = useState<string | null>(null);
+  const [decryptionDone, setDecryptionDone] = useState(false);
+
   useEffect(() => {
     async function load() {
       try {
@@ -122,7 +149,7 @@ export default function TaskPage() {
           return;
         }
 
-        const taskData = await taskRes.json();
+        const taskData: TaskData = await taskRes.json();
         const receiptsData = await receiptsRes.json();
         const rcpts: Receipt[] = receiptsData.receipts || [];
 
@@ -130,7 +157,7 @@ export default function TaskPage() {
         setReceipts(rcpts);
         setLoading(false);
 
-        // ── Real client-side verification ──
+        // ── Ed25519 signature verification ──
         if (rcpts.length > 0) {
           const results = new Map<string, boolean>();
           let verified = 0;
@@ -142,7 +169,6 @@ export default function TaskPage() {
             if (valid) verified++;
             else failed++;
 
-            // Update state progressively so the UI shows progress
             setVerification({
               total: rcpts.length,
               verified,
@@ -151,13 +177,53 @@ export default function TaskPage() {
               results: new Map(results),
             });
 
-            // Small yield to keep UI responsive for large batches
             if (rcpts.length > 20) {
               await new Promise(r => setTimeout(r, 0));
             }
           }
         } else {
           setVerification({ total: 0, verified: 0, failed: 0, done: true, results: new Map() });
+        }
+
+        // ── v1.1: E2E Decryption ──
+        const key = extractViewingKey();
+        if (key && taskData.key_hash) {
+          setViewingKey(key);
+          const isValid = await verifyKeyHash(key, taskData.key_hash);
+          setKeyValid(isValid);
+
+          if (isValid) {
+            // Decrypt all receipts
+            const dMap = new Map<string, DecryptedContent>();
+            for (const r of rcpts) {
+              const content: DecryptedContent = { input: null, output: null };
+              try {
+                if (r.encrypted_input) {
+                  content.input = await decryptAndVerify(r.encrypted_input, key, r.hashes.input);
+                }
+                if (r.encrypted_output) {
+                  content.output = await decryptAndVerify(r.encrypted_output, key, r.hashes.output);
+                }
+              } catch (e) {
+                console.error('[OCS] Decryption error for', r.receipt_id, e);
+              }
+              dMap.set(r.receipt_id, content);
+            }
+            setDecryptedMap(dMap);
+
+            // Decrypt task summary
+            if (taskData.encrypted_summary) {
+              try {
+                const summary = await decryptReceiptField(taskData.encrypted_summary, key);
+                setDecryptedSummary(summary);
+              } catch (e) {
+                console.error('[OCS] Summary decryption error', e);
+              }
+            }
+          }
+          setDecryptionDone(true);
+        } else {
+          setDecryptionDone(true);
         }
       } catch {
         setError('Failed to load task');
@@ -176,6 +242,10 @@ export default function TaskPage() {
     }
     return null;
   }
+
+  // v1.1: Check if this is an encrypted task
+  const isEncryptedTask = task?.key_hash !== null && task?.key_hash !== undefined;
+  const hasEncryptedReceipts = receipts.some(r => r.encrypted_input || r.encrypted_output);
 
   if (loading) {
     return <div className="py-8"><Skeleton lines={8} /></div>;
@@ -200,6 +270,16 @@ export default function TaskPage() {
           <div className="flex items-center gap-2 mb-2">
             <StatusBadge ok={allValid && !gaps} loading={!allDone} />
             <span className="text-[9px] text-ghost">task/{slug}</span>
+            {/* v1.1: E2E encryption badge */}
+            {isEncryptedTask && (
+              <span className={`text-[9px] px-1.5 py-0.5 border ${
+                keyValid
+                  ? 'text-emerald-400 border-emerald-400/30 bg-emerald-400/5'
+                  : 'text-amber-400 border-amber-400/30 bg-amber-400/5'
+              }`}>
+                {keyValid ? '🔓 E2E DECRYPTED' : '🔒 ENCRYPTED'}
+              </span>
+            )}
             <button
               onClick={() => window.open(`/api/tasks/${task.task_id}/pdf`, '_blank')}
               className="ml-auto text-[9px] text-dim border border-faint px-2 py-0.5 hover:border-ghost hover:text-tx transition-colors"
@@ -221,9 +301,38 @@ export default function TaskPage() {
           <Stat label="ACTIONS" value={String(task.total_receipts)} />
           <Stat label="DURATION" value={formatDuration(task.total_duration_ms)} />
           <Stat label="COST" value={formatCost(task.total_cost_usd)} />
-          <Stat label="TOKENS" value={formatTokens(task.total_tokens)} />
+          <Stat label="STATUS" value={task.status.toUpperCase()} accent={task.status === 'completed'} />
         </div>
       </div>
+
+      {/* v1.1: Decrypted summary */}
+      {decryptedSummary && (
+        <div className="mb-4 px-3.5 py-3 border border-emerald-400/20 bg-emerald-400/5">
+          <span className="text-[9px] text-emerald-400/60 tracking-wide block mb-1">DECRYPTED SUMMARY</span>
+          <p className="text-[12px] text-tx leading-relaxed">{decryptedSummary}</p>
+        </div>
+      )}
+
+      {/* v1.1: Encryption notice (no key provided) */}
+      {isEncryptedTask && !viewingKey && decryptionDone && (
+        <div className="mb-4 px-3.5 py-3 border border-amber-400/20 bg-amber-400/5">
+          <span className="text-[11px] text-amber-400">
+            🔒 This task has E2E encrypted content. Add the viewing key to the URL to decrypt:
+          </span>
+          <pre className="text-[10px] text-dim mt-1 overflow-auto">
+            {`${typeof window !== 'undefined' ? window.location.href : ''}#key=VIEWING_KEY`}
+          </pre>
+        </div>
+      )}
+
+      {/* v1.1: Wrong key warning */}
+      {viewingKey && keyValid === false && decryptionDone && (
+        <div className="mb-4 px-3.5 py-3 border border-red-400/20 bg-red-400/5">
+          <span className="text-[11px] text-red-400">
+            ✗ Viewing key does not match this task. Content cannot be decrypted.
+          </span>
+        </div>
+      )}
 
       {/* ── Action Log ── */}
       {receipts.length === 0 ? (
@@ -243,25 +352,81 @@ export default function TaskPage() {
             {receipts.map((r) => {
               const sigOk = verification.results.get(r.receipt_id);
               const checked = sigOk !== undefined;
+              const isExpanded = expandedReceipt === r.receipt_id;
+              const decrypted = decryptedMap.get(r.receipt_id);
+              const hasDecrypted = decrypted && (decrypted.input || decrypted.output);
+              const encLevel = detectEncryptionLevel(r);
+
               return (
-                <Link
-                  key={r.receipt_id}
-                  href={`/receipt/${r.receipt_id}`}
-                  className="grid gap-2 px-3.5 py-2 items-center border-b border-faint/50 last:border-b-0 hover:bg-hl transition-colors cursor-pointer"
-                  style={{ gridTemplateColumns: '24px 52px 78px 1fr 40px 48px 16px' }}
-                >
-                  <span className="text-ghost">{r.sequence}</span>
-                  <span className="text-ghost">{formatTime(r.timestamp).slice(0, 8)}</span>
-                  <span className="text-dim">{r.action.type}</span>
-                  <span className="text-tx font-medium truncate">{r.action.name}</span>
-                  <span className="text-ghost text-right">{formatDuration(r.action.duration_ms)}</span>
-                  <span className="text-dim text-right">{formatCost(r.cost_usd)}</span>
-                  <span className={`text-right transition-colors ${
-                    !checked ? 'text-ghost' : sigOk ? 'text-accent' : 'text-red-500'
-                  }`}>
-                    {!checked ? '·' : sigOk ? '✓' : '✗'}
-                  </span>
-                </Link>
+                <div key={r.receipt_id} className="border-b border-faint/50 last:border-b-0">
+                  {/* Main row */}
+                  <div
+                    onClick={() => {
+                      if (hasDecrypted) {
+                        setExpandedReceipt(isExpanded ? null : r.receipt_id);
+                      } else {
+                        window.location.href = `/receipt/${r.receipt_id}`;
+                      }
+                    }}
+                    className={`grid gap-2 px-3.5 py-2 items-center hover:bg-hl transition-colors cursor-pointer ${
+                      isExpanded ? 'bg-hl' : ''
+                    }`}
+                    style={{ gridTemplateColumns: '24px 52px 78px 1fr 40px 48px 16px' }}
+                  >
+                    <span className="text-ghost">{r.sequence}</span>
+                    <span className="text-ghost">{formatTime(r.timestamp).slice(0, 8)}</span>
+                    <span className="text-dim">{r.action.type}</span>
+                    <span className="text-tx font-medium truncate flex items-center gap-1.5">
+                      {r.action.name}
+                      {hasDecrypted && (
+                        <span className="text-[8px] text-emerald-400/50">{isExpanded ? '▾' : '▸'}</span>
+                      )}
+                    </span>
+                    <span className="text-ghost text-right">{formatDuration(r.action.duration_ms)}</span>
+                    <span className="text-dim text-right">{formatCost(r.cost_usd)}</span>
+                    <span className={`text-right transition-colors ${
+                      !checked ? 'text-ghost' : sigOk ? 'text-accent' : 'text-red-500'
+                    }`}>
+                      {!checked ? '·' : sigOk ? '✓' : '✗'}
+                    </span>
+                  </div>
+
+                  {/* v1.1: Expanded decrypted content */}
+                  {isExpanded && hasDecrypted && (
+                    <div className="px-3.5 py-3 bg-[#0a0f0a] border-t border-faint/30">
+                      {decrypted.input && (
+                        <div className="mb-3">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[9px] text-ghost tracking-wide">INPUT</span>
+                            {decrypted.input.hashMatch ? (
+                              <span className="text-[8px] text-emerald-400">✓ hash verified</span>
+                            ) : (
+                              <span className="text-[8px] text-red-400">✗ hash mismatch</span>
+                            )}
+                          </div>
+                          <pre className="text-[11px] text-dim leading-relaxed whitespace-pre-wrap break-all">
+                            {decrypted.input.plaintext}
+                          </pre>
+                        </div>
+                      )}
+                      {decrypted.output && (
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[9px] text-ghost tracking-wide">OUTPUT</span>
+                            {decrypted.output.hashMatch ? (
+                              <span className="text-[8px] text-emerald-400">✓ hash verified</span>
+                            ) : (
+                              <span className="text-[8px] text-red-400">✗ hash mismatch</span>
+                            )}
+                          </div>
+                          <pre className="text-[11px] text-dim leading-relaxed whitespace-pre-wrap break-all">
+                            {decrypted.output.plaintext}
+                          </pre>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>
@@ -270,7 +435,7 @@ export default function TaskPage() {
 
       {/* ── Verification status bar ── */}
       <div
-        className="flex items-center gap-2 px-3.5 py-3 border transition-all mb-6"
+        className="flex items-center gap-2 px-3.5 py-3 border transition-all mb-2"
         style={{
           borderColor: allValid ? '#22c55e33' : hasFailures ? '#ef444433' : '#22222233',
           background: allValid ? '#22c55e06' : hasFailures ? '#ef444406' : 'transparent',
@@ -296,6 +461,36 @@ export default function TaskPage() {
           }
         </span>
       </div>
+
+      {/* v1.1: E2E encryption status bar */}
+      {hasEncryptedReceipts && decryptionDone && (
+        <div
+          className="flex items-center gap-2 px-3.5 py-3 border transition-all mb-6"
+          style={{
+            borderColor: keyValid ? '#22c55e33' : '#f59e0b33',
+            background: keyValid ? '#22c55e06' : '#f59e0b06',
+          }}
+        >
+          <span
+            className="w-1.5 h-1.5"
+            style={{
+              background: keyValid ? '#22c55e' : '#f59e0b',
+              boxShadow: keyValid ? '0 0 6px #22c55e55' : '0 0 6px #f59e0b55',
+            }}
+          />
+          <span className={`text-[11px] ${keyValid ? 'text-accent' : 'text-amber-400'}`}>
+            {keyValid
+              ? `AES-256-GCM · ${decryptedMap.size} receipts decrypted · all hashes verified · zero plaintext on server`
+              : viewingKey
+                ? 'AES-256-GCM · wrong viewing key — content cannot be decrypted'
+                : 'AES-256-GCM · encrypted content available — add #key=VIEWING_KEY to URL'
+            }
+          </span>
+        </div>
+      )}
+
+      {/* Spacer if no E2E bar */}
+      {!hasEncryptedReceipts && <div className="mb-6" />}
     </div>
   );
 }

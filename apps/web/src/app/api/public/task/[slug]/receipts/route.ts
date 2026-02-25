@@ -5,6 +5,7 @@ import { jsonError } from '@/lib/auth';
 /**
  * GET /api/public/task/[slug]/receipts — Public receipt list for a task.
  * Returns all receipts ordered by sequence. No auth required.
+ * v1.1: Also returns encrypted_input/encrypted_output for E2E decryption.
  */
 export async function GET(
   _req: NextRequest,
@@ -34,7 +35,8 @@ export async function GET(
       input_sha256, output_sha256,
       session_id, sequence, visibility,
       signature_algorithm, signature_public_key, signature_value,
-      signed_payload
+      signed_payload,
+      encrypted_input, encrypted_output
     `)
     .eq('task_id', task.id)
     .in('visibility', ['public', 'task_only'])
@@ -74,6 +76,9 @@ export async function GET(
         value: r.signature_value,
       },
       signed_payload: r.signed_payload,
+      // v1.1: E2E encrypted fields (null for v1.0 receipts)
+      encrypted_input: r.encrypted_input || null,
+      encrypted_output: r.encrypted_output || null,
     })),
   });
 }
