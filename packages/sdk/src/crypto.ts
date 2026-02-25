@@ -1,9 +1,9 @@
 import nacl from 'tweetnacl';
 import { encodeBase64, decodeBase64 } from 'tweetnacl-util';
-import { createHash } from 'crypto';
+import { createHash, randomBytes, createCipheriv, createDecipheriv } from 'crypto';
 import type { KeyPair, SerializedKeyPair, ReceiptPayload, ReceiptSignature } from './types';
 
-// ─── Key Management ───────────────────────────────────────
+// ─── Key Management (Ed25519) ─────────────────────────────
 
 /**
  * Generate a new Ed25519 keypair for signing receipts.
@@ -63,7 +63,7 @@ export function sha256Buffer(data: Buffer): string {
   return createHash('sha256').update(data).digest('hex');
 }
 
-// ─── Signing ──────────────────────────────────────────────
+// ─── Ed25519 Signing ──────────────────────────────────────
 
 /**
  * Canonical JSON serialization for signing.
@@ -118,7 +118,7 @@ export function signPayload(
   };
 }
 
-// ─── Verification ─────────────────────────────────────────
+// ─── Ed25519 Verification ─────────────────────────────────
 
 /**
  * Verify a signed receipt's signature.
@@ -170,4 +170,125 @@ export function verifyReceipt(
   }
 
   return { signatureValid, hashMatch };
+}
+
+// ═══════════════════════════════════════════════════════════
+// AES-256-GCM — E2E Encryption (v1.1)
+// ═══════════════════════════════════════════════════════════
+//
+// Flow:
+//   1. Per task, SDK generates a random 256-bit viewing key
+//   2. For each receipt, raw input/output are encrypted with that key
+//   3. The key goes ONLY in the URL fragment (#key=...) — never to server
+//   4. Server stores encrypted blobs + SHA-256 hashes (from signed payload)
+//   5. Browser extracts key from fragment, decrypts, verifies hash match
+//
+// Blob format: base64( IV_12bytes || ciphertext || authTag_16bytes )
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Generate a random AES-256-GCM viewing key for a task.
+ * Returns a base64url-encoded 32-byte key (URL-safe, no padding).
+ * 
+ * This key goes in the URL fragment: /task/slug#key=THIS_VALUE
+ * The fragment is never sent to the server (per HTTP spec).
+ */
+export function generateViewingKey(): string {
+  const key = randomBytes(32);
+  return toBase64Url(key);
+}
+
+/**
+ * Encrypt a plaintext string with AES-256-GCM.
+ * 
+ * @param plaintext - The raw data to encrypt (input or output string)
+ * @param viewingKeyBase64Url - The task's viewing key (base64url)
+ * @returns base64-encoded blob: IV (12B) || ciphertext || authTag (16B)
+ */
+export function encryptField(plaintext: string, viewingKeyBase64Url: string): string {
+  const key = fromBase64Url(viewingKeyBase64Url);
+  const iv = randomBytes(12); // 96-bit IV, recommended for GCM
+  const cipher = createCipheriv('aes-256-gcm', key, iv);
+
+  const plaintextBytes = Buffer.from(plaintext, 'utf8');
+  const encrypted = Buffer.concat([
+    cipher.update(plaintextBytes),
+    cipher.final(),
+  ]);
+  const authTag = cipher.getAuthTag(); // 16 bytes
+
+  // Concatenate: IV || ciphertext || authTag
+  const blob = Buffer.concat([iv, encrypted, authTag]);
+  return blob.toString('base64');
+}
+
+/**
+ * Decrypt an AES-256-GCM encrypted blob back to plaintext.
+ * 
+ * @param encryptedBase64 - base64-encoded blob: IV (12B) || ciphertext || authTag (16B)
+ * @param viewingKeyBase64Url - The task's viewing key (base64url)
+ * @returns The original plaintext string
+ * @throws Error if decryption fails (wrong key, tampered data)
+ */
+export function decryptField(encryptedBase64: string, viewingKeyBase64Url: string): string {
+  const key = fromBase64Url(viewingKeyBase64Url);
+  const blob = Buffer.from(encryptedBase64, 'base64');
+
+  if (blob.length < 28) {
+    // Minimum: 12 (IV) + 0 (empty ciphertext) + 16 (authTag)
+    throw new Error('Encrypted blob too short — invalid format');
+  }
+
+  const iv = blob.subarray(0, 12);
+  const authTag = blob.subarray(blob.length - 16);
+  const ciphertext = blob.subarray(12, blob.length - 16);
+
+  const decipher = createDecipheriv('aes-256-gcm', key, iv);
+  decipher.setAuthTag(authTag);
+
+  const decrypted = Buffer.concat([
+    decipher.update(ciphertext),
+    decipher.final(), // throws if authTag mismatch (tampered!)
+  ]);
+
+  return decrypted.toString('utf8');
+}
+
+/**
+ * Hash the viewing key with SHA-256.
+ * Stored in tasks.key_hash so the frontend can verify
+ * the user has the correct key BEFORE attempting decryption.
+ * 
+ * The server never sees the actual key — only this hash.
+ */
+export function hashViewingKey(viewingKeyBase64Url: string): string {
+  return createHash('sha256').update(viewingKeyBase64Url, 'utf8').digest('hex');
+}
+
+// ─── Base64url helpers ────────────────────────────────────
+// URL-safe base64 without padding — safe for URL fragments
+
+/**
+ * Convert raw bytes to base64url string (no padding).
+ */
+export function toBase64Url(buffer: Buffer | Uint8Array): string {
+  const buf = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
+  return buf
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+/**
+ * Convert base64url string back to Buffer.
+ */
+export function fromBase64Url(base64url: string): Buffer {
+  // Restore standard base64
+  let b64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
+  // Add padding
+  while (b64.length % 4 !== 0) {
+    b64 += '=';
+  }
+  return Buffer.from(b64, 'base64');
 }

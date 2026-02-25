@@ -64,6 +64,7 @@ export type ReceiptSignature = z.infer<typeof ReceiptSignature>;
 /**
  * The core receipt payload — the data that gets signed.
  * Signature is NOT included in the signed payload (it's added after).
+ * Encrypted fields are NOT part of the signed payload either.
  */
 export const ReceiptPayload = z.object({
   version: z.literal('1.0'),
@@ -88,6 +89,22 @@ export const SignedReceipt = ReceiptPayload.extend({
   server_received_at: z.string().datetime().nullable().default(null),
 });
 export type SignedReceipt = z.infer<typeof SignedReceipt>;
+
+/**
+ * v1.1: A signed receipt with optional E2E encrypted fields.
+ * The encrypted fields are transport-only — they are NOT part
+ * of the signed payload (the hashes in the payload verify them).
+ * 
+ * Flow:
+ *   1. SHA-256(raw_input) → hashes.input_sha256 (in signed payload)
+ *   2. AES-GCM-encrypt(raw_input, viewing_key) → encrypted_input (transport)
+ *   3. Verifier decrypts → SHA-256(decrypted) must match hashes.input_sha256
+ */
+export const EncryptedReceipt = SignedReceipt.extend({
+  encrypted_input: z.string().nullable().default(null),
+  encrypted_output: z.string().nullable().default(null),
+});
+export type EncryptedReceipt = z.infer<typeof EncryptedReceipt>;
 
 // ─── Key Pair ─────────────────────────────────────────────
 
@@ -143,6 +160,15 @@ export interface TaskCreate {
   description?: string;
 }
 
+/**
+ * v1.1: Task creation with E2E encryption support.
+ * key_hash allows the server to confirm key correctness
+ * without ever seeing the actual viewing key.
+ */
+export interface EncryptedTaskCreate extends TaskCreate {
+  key_hash: string; // SHA-256(viewing_key) — server stores this
+}
+
 export interface TaskInfo {
   task_id: string;
   slug: string;
@@ -151,4 +177,5 @@ export interface TaskInfo {
   total_receipts: number;
   total_duration_ms: number;
   total_cost_usd: number;
+  key_hash?: string | null; // v1.1: present if E2E encrypted
 }

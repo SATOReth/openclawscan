@@ -37,6 +37,8 @@ export async function POST(req: NextRequest) {
   }
 
   // 4. Verify signature
+  // extractSignablePayload excludes: signature, server_received_at,
+  // encrypted_input, encrypted_output (v1.1 transport-only fields)
   const payload = extractSignablePayload(body);
   const signature = body.signature as {
     algorithm: string;
@@ -80,7 +82,7 @@ export async function POST(req: NextRequest) {
 
   // 8. No receipt limits — OpenClawScan is completely free
 
-  // 8b. Extract the signed payload (everything except signature + server_received_at)
+  // 8b. Extract the signed payload for storage
   const signedPayload = extractSignablePayload(body);
 
   // 9. Check for duplicate receipt_id
@@ -132,6 +134,34 @@ export async function POST(req: NextRequest) {
     return jsonError('Invalid visibility: ' + visibility + '. Must be: private, task_only, public', 400);
   }
 
+  // v1.1: Extract encrypted fields (optional, null for v1.0 receipts)
+  const encrypted_input = (body.encrypted_input as string) || null;
+  const encrypted_output = (body.encrypted_output as string) || null;
+
+  // Validate encrypted fields format (if present, must be base64)
+  if (encrypted_input !== null) {
+    try {
+      const buf = Buffer.from(encrypted_input, 'base64');
+      // Minimum: 12 (IV) + 0 (empty ciphertext) + 16 (authTag) = 28 bytes
+      if (buf.length < 28) {
+        return jsonError('encrypted_input blob too short — invalid AES-256-GCM format', 400);
+      }
+    } catch {
+      return jsonError('encrypted_input must be valid base64', 400);
+    }
+  }
+
+  if (encrypted_output !== null) {
+    try {
+      const buf = Buffer.from(encrypted_output, 'base64');
+      if (buf.length < 28) {
+        return jsonError('encrypted_output blob too short — invalid AES-256-GCM format', 400);
+      }
+    } catch {
+      return jsonError('encrypted_output must be valid base64', 400);
+    }
+  }
+
   // 12. Insert into database
   const { error: insertError } = await supabaseAdmin
     .from('receipts')
@@ -160,6 +190,9 @@ export async function POST(req: NextRequest) {
       signature_public_key: signature.public_key,
       signature_value: signature.value,
       signed_payload: signedPayload,
+      // v1.1: E2E encrypted fields (null for v1.0 receipts)
+      encrypted_input,
+      encrypted_output,
     });
 
   if (insertError) {

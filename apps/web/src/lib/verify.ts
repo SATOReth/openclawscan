@@ -23,7 +23,8 @@ function deepSortKeys(obj: unknown): unknown {
 
 /**
  * Verify an Ed25519 signature on a receipt payload.
- * The payload is everything EXCEPT signature and server_received_at.
+ * The payload is everything EXCEPT signature, server_received_at,
+ * and encrypted_* fields (v1.1 transport-only, not signed).
  */
 export function verifyReceiptSignature(
   payload: Record<string, unknown>,
@@ -47,12 +48,22 @@ export function verifyReceiptSignature(
 
 /**
  * Extract the signable payload from a full receipt body.
- * Removes signature and server_received_at (which are not signed).
+ * Removes fields that are NOT part of the Ed25519 signature:
+ *   - signature (added after signing)
+ *   - server_received_at (added by server)
+ *   - encrypted_input (v1.1 transport-only, bound by hashes.input_sha256)
+ *   - encrypted_output (v1.1 transport-only, bound by hashes.output_sha256)
  */
 export function extractSignablePayload(
   body: Record<string, unknown>
 ): Record<string, unknown> {
-  const { signature, server_received_at, ...payload } = body;
+  const {
+    signature,
+    server_received_at,
+    encrypted_input,
+    encrypted_output,
+    ...payload
+  } = body;
   return payload;
 }
 
