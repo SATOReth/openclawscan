@@ -42,7 +42,7 @@ export function jsonError(message: string, status: number) {
 
 /**
  * Tier-based receipt limits — REMOVED.
- * OpenClawScan is completely free with no limits.
+ * OpenClawScan is an open standard with no limits.
  */
 export function getReceiptLimit(_tier: string): number {
   return Infinity;

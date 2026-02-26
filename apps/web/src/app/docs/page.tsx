@@ -2,382 +2,483 @@
 
 import { useState } from 'react';
 import { TBox } from '@/components/ui';
+import { CopyInstall } from '@/components/copy-install';
 
-const sections = [
-  { id: 'quickstart', label: 'Quickstart' },
-  { id: 'sdk', label: 'SDK' },
-  { id: 'api', label: 'API' },
-  { id: 'verify', label: 'Verification' },
-  { id: 'privacy', label: 'Privacy' },
-  { id: 'selfhost', label: 'Self-host' },
+type Section = 'overview' | 'quickstart' | 'api' | 'verification' | 'onchain' | 'encryption';
+
+const NAV: { id: Section; label: string }[] = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'quickstart', label: 'Quick Start' },
+  { id: 'api', label: 'API Reference' },
+  { id: 'verification', label: 'Verification' },
+  { id: 'encryption', label: 'E2E Encryption' },
+  { id: 'onchain', label: 'On-Chain' },
 ];
 
-function Code({ children, title }: { children: string; title?: string }) {
+function Code({ children }: { children: string }) {
   return (
-    <div className="mb-4">
-      {title && <p className="text-[9px] text-ghost tracking-widest mb-1">{title}</p>}
-      <pre className="text-[11px] leading-[1.8] text-dim bg-bg border border-faint p-3 overflow-auto">{children}</pre>
-    </div>
+    <pre className="text-[12px] leading-[1.8] text-dim bg-bg border border-faint p-4 overflow-auto mb-4">
+      {children}
+    </pre>
   );
 }
 
 function H2({ children }: { children: string }) {
-  return <h2 className="text-[15px] font-bold text-bright mt-8 mb-3 tracking-tight">{children}</h2>;
+  return <h2 className="text-[18px] font-bold text-bright mt-6 mb-3">{children}</h2>;
 }
 
 function H3({ children }: { children: string }) {
-  return <h3 className="text-[12px] font-bold text-tx mt-5 mb-2">{children}</h3>;
+  return <h3 className="text-[15px] font-bold text-bright mt-4 mb-2">{children}</h3>;
 }
 
 function P({ children }: { children: React.ReactNode }) {
-  return <p className="text-[11px] text-dim leading-[1.7] mb-3">{children}</p>;
+  return <p className="text-[13px] text-dim leading-relaxed mb-3">{children}</p>;
+}
+
+function Endpoint({ method, path, desc }: { method: string; path: string; desc: string }) {
+  const color = method === 'GET' ? '#22c55e' : method === 'POST' ? '#60a5fa' : '#eab308';
+  return (
+    <div className="border border-faint p-3 mb-3 bg-bg">
+      <div className="flex items-center gap-2 mb-1.5">
+        <span className="text-[11px] font-bold px-1.5 py-0.5 border" style={{ color, borderColor: color + '44' }}>{method}</span>
+        <code className="text-[13px] text-bright">{path}</code>
+      </div>
+      <p className="text-[12px] text-dim pl-1">{desc}</p>
+    </div>
+  );
 }
 
 export default function DocsPage() {
-  const [active, setActive] = useState('quickstart');
+  const [active, setActive] = useState<Section>('overview');
 
   return (
-    <div className="py-6 grid grid-cols-1 md:grid-cols-[180px_1fr] gap-8">
-      {/* Sidebar */}
-      <div className="md:sticky md:top-16 md:self-start">
-        <p className="text-[9px] text-ghost tracking-widest mb-3">DOCUMENTATION</p>
-        {sections.map(s => (
-          <button
-            key={s.id}
-            onClick={() => setActive(s.id)}
-            className={`block w-full text-left py-1.5 text-[11px] transition-colors ${
-              active === s.id ? 'text-accent font-bold' : 'text-dim hover:text-tx'
-            }`}
-          >
-            {active === s.id && <span className="text-accent mr-1">›</span>}
-            {s.label}
-          </button>
-        ))}
-        <div className="mt-6 pt-4 border-t border-faint">
-          <p className="text-[9px] text-ghost tracking-widest mb-2">VERSION</p>
-          <p className="text-[11px] text-tx">v1.0.0</p>
-          <p className="text-[9px] text-ghost mt-3 leading-relaxed">
-            MIT Licensed<br />
-            <a href="https://github.com" className="text-accent hover:underline">GitHub →</a>
-          </p>
-        </div>
+    <div className="py-8">
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-accent text-[13px]">◈</span>
+        <h1 className="text-[24px] font-bold text-bright">Documentation</h1>
+        <span className="text-[10px] text-ghost">v1.2</span>
       </div>
+      <p className="text-[13px] text-dim mb-6">Proof of Task protocol — 3-level verification for AI agents.</p>
 
-      {/* Content */}
-      <div className="min-w-0">
-        {active === 'quickstart' && (
-          <div>
-            <h1 className="text-xl font-bold text-bright mb-2">Quickstart</h1>
-            <P>Get OpenClawScan running in 5 minutes. Generate signed receipts for every AI agent action.</P>
+      <div className="grid grid-cols-1 md:grid-cols-[180px_1fr] gap-6">
+        {/* Sidebar nav */}
+        <div className="flex md:flex-col gap-1.5 flex-wrap">
+          {NAV.map(n => (
+            <button
+              key={n.id}
+              onClick={() => setActive(n.id)}
+              className={`text-left text-[12px] px-3 py-1.5 transition-colors ${
+                active === n.id
+                  ? 'text-bright bg-card border border-accent/30'
+                  : 'text-dim hover:text-tx border border-transparent'
+              }`}
+            >
+              {n.label}
+            </button>
+          ))}
+        </div>
 
-            <H2>1. Install</H2>
-            <Code title="TERMINAL">{`$ npm install @openclawscan/sdk`}</Code>
+        {/* Content */}
+        <div>
+          {active === 'overview' && (
+            <TBox title="OVERVIEW" color="#22c55e">
+              <H2>What is Proof of Task?</H2>
+              <P>
+                Proof of Task (PoT) is a cryptographic attestation that an AI agent executed a specific task.
+                It is not a consensus mechanism and it is not observability. It is a new verification primitive
+                for the AI agent economy — client-facing proof that work was done, how it was done, and that
+                nobody can alter the record.
+              </P>
 
-            <H2>2. Generate keypair</H2>
-            <P>Every agent needs an Ed25519 keypair. The public key is registered with the server; the private key stays on your machine.</P>
-            <Code title="generate-keys.ts">{`import { generateKeyPair, serializeKeyPair } from '@openclawscan/sdk'
+              <H3>3-Level Verification Stack</H3>
+              <P>Every receipt is verified at three independent levels:</P>
 
-const keys = generateKeyPair()
-const serialized = serializeKeyPair(keys)
+              <div className="border border-faint bg-bg p-3 mb-4">
+                <pre className="text-[12px] leading-[1.9] text-dim">{
+`① SIGNATURE   Ed25519          → agent signed it
+② ENCRYPTION  AES-256-GCM      → data is authentic
+③ BLOCKCHAIN  Merkle on Base L2 → record is permanent`}
+                </pre>
+              </div>
 
-console.log('Public key:', serialized.publicKey)
-console.log('Secret key:', serialized.secretKey)
-// Save secretKey securely — you'll need it to sign receipts`}</Code>
+              <H3>Architecture</H3>
+              <Code>{
+`Agent Action
+     ↓
+SDK: SHA-256 hash input/output
+     ↓
+SDK: AES-256-GCM encrypt (viewing key → URL fragment)
+     ↓
+SDK: Sign payload with Ed25519
+     ↓
+Save to ~/.openclawscan/ (local backup)
+     ↓
+POST /api/receipts (server stores encrypted blobs + hashes)
+     ↓
+POST /api/tasks/certify → Merkle tree → Base L2
+     ↓
+Public verification: /task/[slug] — 3-level verify in browser`}
+              </Code>
 
-            <H2>3. Register your agent</H2>
-            <P>Register via the <span className="text-tx">dashboard</span> or the API:</P>
-            <Code title="TERMINAL">{`$ curl -X POST https://openclawscan.xyz/api/agents \\
-  -H "Authorization: Bearer ocs_your_api_key" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "agent_id": "my-audit-agent",
-    "display_name": "Audit Agent",
-    "public_key": "VzqZUrs/ZPyw+..."
-  }'`}</Code>
+              <H3>Receipt Format</H3>
+              <P>Each signed receipt contains:</P>
+              <Code>{
+`{
+  "version": "1.0",
+  "receipt_id": "rcpt_wyuc8de1qj93",
+  "agent_id": "sentinel-007",
+  "owner_id": "github:myuser",
+  "timestamp": "2026-02-21T14:31:15Z",
+  "action": { "type": "tool_call", "name": "slither_scan", "duration_ms": 8400 },
+  "model": { "provider": "anthropic", "name": "claude-sonnet-4-5", "tokens_in": 3840, "tokens_out": 5560 },
+  "cost": { "amount_usd": 0.072 },
+  "hashes": { "input_sha256": "a1b2c3...", "output_sha256": "f6e5d4..." },
+  "context": { "task_id": "uuid", "session_id": "sess_abc", "sequence": 3 },
+  "signature": { "algorithm": "ed25519", "public_key": "VzqZ...", "value": "base64..." }
+}`}
+              </Code>
+              <P>
+                Raw input/output are <span className="text-tx">never stored</span> — only SHA-256 hashes.
+                With E2E encryption enabled, even hashes are encrypted (AES-256-GCM) before transmission.
+              </P>
+            </TBox>
+          )}
 
-            <H2>4. Capture actions</H2>
-            <Code title="my-agent.ts">{`import { OpenClawScan } from '@openclawscan/sdk'
+          {active === 'quickstart' && (
+            <TBox title="QUICK START" color="#60a5fa">
+              <H2>Installation</H2>
+              <CopyInstall command="npm install @openclawscan/sdk" />
+
+              <H2>1. Generate keys</H2>
+              <P>Run this once when setting up your agent. Save the secret key securely.</P>
+              <Code>{
+`import { generateKeyPair, serializeKeyPair } from '@openclawscan/sdk';
+
+const keys = generateKeyPair();
+const serialized = serializeKeyPair(keys);
+
+console.log('Public key:', serialized.publicKey);
+console.log('Secret key:', serialized.secretKey);
+// ⚠ Save secretKey securely — it cannot be recovered`}
+              </Code>
+
+              <H2>2. Initialize the scanner</H2>
+              <Code>{
+`import { OpenClawScan } from '@openclawscan/sdk';
 
 const scanner = new OpenClawScan({
   agentId: 'my-audit-agent',
   ownerId: 'github:myuser',
-  secretKey: 'your-base64-secret-key',
-  apiKey: 'ocs_your_api_key',
-  apiUrl: 'https://openclawscan.xyz',
-})
+  secretKey: process.env.OCS_SECRET_KEY,
+  apiKey: process.env.OCS_API_KEY,    // from dashboard
+});`}
+              </Code>
 
-// Start a task (groups receipts together)
+              <H2>3. Start a task and capture actions</H2>
+              <Code>{
+`// Start a task — all receipts grouped under one link
 const task = await scanner.startTask({
   agent_id: 'my-audit-agent',
-  name: 'Audit TokenVault.sol',
-})
+  name: 'Smart Contract Audit — TokenVault.sol',
+});
 
-// Capture an action — auto-hashed and signed
+// Capture each action — auto-hashed and signed
 await scanner.capture({
   action: { type: 'tool_call', name: 'slither_scan', duration_ms: 8400 },
   model: { provider: 'anthropic', name: 'claude-sonnet-4-5', tokens_in: 3840, tokens_out: 5560 },
   cost: { amount_usd: 0.072 },
-  input: contractSource,  // → SHA-256 hash (raw data stays local)
-  output: scanResults,    // → SHA-256 hash
-})
+  input: contractSource,     // → SHA-256 hashed, never stored raw
+  output: scanResults,       // → SHA-256 hashed, never stored raw
+});
 
-// Complete the task — get shareable link
-const result = await scanner.completeTask()
-console.log(result.share_url)
-// → https://openclawscan.xyz/task/a3f8c2b1`}</Code>
+// Complete the task
+const completed = await scanner.completeTask();
+console.log('Share link:', completed.share_url);`}
+              </Code>
 
-            <H2>5. Share & verify</H2>
-            <P>
-              Your client opens the link. Every action, timestamp, cost, and signature is independently
-              verifiable in the browser. No account needed to verify.
-            </P>
+              <H2>4. Certify on-chain</H2>
+              <P>
+                After completing a task, certify it on Base L2. This builds a Merkle tree from all receipt
+                hashes and anchors the root on-chain via ClawVerify.sol.
+              </P>
+              <Code>{
+`// Certify via API
+const res = await fetch('https://openclawscan.xyz/api/tasks/certify', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer ' + process.env.OCS_API_KEY,
+  },
+  body: JSON.stringify({ slug: task.slug }),
+});
 
-            <TBox title="WHAT HAPPENS UNDER THE HOOD" color="#333">
-              <div className="text-[10.5px] text-dim leading-relaxed space-y-1">
-                <p><span className="text-accent">1.</span> SDK hashes input and output with SHA-256 (raw data stays local)</p>
-                <p><span className="text-accent">2.</span> SDK builds receipt payload (action, model, cost, hashes, timestamp)</p>
-                <p><span className="text-accent">3.</span> SDK signs the payload with your Ed25519 private key</p>
-                <p><span className="text-accent">4.</span> Receipt saved to <span className="text-tx">~/.openclawscan/</span> (local backup)</p>
-                <p><span className="text-accent">5.</span> Receipt sent to server (server adds independent timestamp)</p>
-                <p><span className="text-accent">6.</span> Server verifies signature + checks time drift (&lt;5min)</p>
-                <p><span className="text-accent">7.</span> Receipt stored in database (hashes only, no raw data)</p>
+const cert = await res.json();
+console.log('TX:', cert.tx_hash);
+console.log('BaseScan:', cert.basescan_url);`}
+              </Code>
+
+              <H2>5. Share and verify</H2>
+              <P>
+                Your client visits <code className="text-accent">openclawscan.xyz/task/&#123;slug&#125;</code> and
+                verifies all three levels in the browser: Ed25519 signature, E2E decryption + hash match,
+                and Merkle proof against the on-chain root.
+              </P>
+              <div className="border border-accent/20 bg-accent/[.03] p-3 mt-3">
+                <p className="text-[12px] text-accent">
+                  ◈ See a live example: <a href="/task/5ce3974c" className="underline text-bright hover:text-accent transition-colors">openclawscan.xyz/task/5ce3974c</a> — 8 receipts, 3-level verified, certified on Base L2.
+                </p>
               </div>
             </TBox>
-          </div>
-        )}
+          )}
 
-        {active === 'sdk' && (
-          <div>
-            <h1 className="text-xl font-bold text-bright mb-2">SDK Reference</h1>
-            <P>The <span className="text-tx">@openclawscan/sdk</span> package provides everything needed to generate and verify signed receipts.</P>
+          {active === 'api' && (
+            <TBox title="API REFERENCE" color="#eab308">
+              <H2>Authentication</H2>
+              <P>
+                All authenticated endpoints require a Bearer token. Get your API key from the
+                {' '}<a href="/dashboard" className="text-accent hover:text-bright transition-colors">dashboard</a>.
+              </P>
+              <Code>{`Authorization: Bearer ocs_your_api_key_here`}</Code>
 
-            <H2>OpenClawScan</H2>
-            <P>Main class. Initialize once, use for all captures.</P>
-            <Code title="CONSTRUCTOR">{`new OpenClawScan({
-  agentId: string,          // Your agent identifier
-  ownerId: string,          // Owner identifier (e.g. "github:user")
-  secretKey: string,        // Ed25519 secret key (base64)
-  apiKey?: string,          // API key for server submission
-  apiUrl?: string,          // Server URL (default: https://openclawscan.xyz)
-  autoCapture?: boolean,    // Auto-capture mode (default: false)
-  defaultVisibility?: 'private' | 'task_only' | 'public',
-  localBackupPath?: string, // Local backup dir (default: ~/.openclawscan/)
-  onReceipt?: (receipt) => void,  // Callback on each receipt
-})`}</Code>
+              <H2>Receipts</H2>
+              <Endpoint method="POST" path="/api/receipts" desc="Submit a signed receipt. The server verifies the Ed25519 signature and timestamp before storing." />
+              <Endpoint method="GET" path="/api/receipts/verify?id={receipt_id}" desc="Verify a receipt's signature, hash, and on-chain anchor status. Public — no auth required." />
 
-            <H3>capture(input)</H3>
-            <P>Generate a signed receipt and submit to server. Returns <span className="text-tx">Promise&lt;SignedReceipt&gt;</span>.</P>
-            <Code>{`await scanner.capture({
-  action: {
-    type: 'tool_call' | 'file_write' | 'file_read' | 'api_request' |
-          'message_send' | 'skill_exec' | 'code_exec' | 'web_search' | 'model_call',
-    name: string,           // Action name (e.g. "slither_scan")
-    duration_ms: number,    // Execution time in ms
-  },
-  model: {
-    provider: string,       // "anthropic", "openai", etc.
-    name: string,           // "claude-sonnet-4-5", "gpt-4o", etc.
-    tokens_in: number,
-    tokens_out: number,
-  },
-  cost: {
-    amount_usd: number,
-    was_routed?: boolean,   // If model was auto-routed
-  },
-  input: string,            // Raw input → will be SHA-256 hashed
-  output: string,           // Raw output → will be SHA-256 hashed
-  task_id?: string,         // Optional (auto-set if startTask active)
-})`}</Code>
+              <H2>Tasks</H2>
+              <Endpoint method="POST" path="/api/tasks" desc="Create a new task. Returns task_id and slug for grouping receipts." />
+              <Endpoint method="GET" path="/api/tasks?slug={slug}" desc="Get task info including certification status." />
+              <Endpoint method="POST" path="/api/tasks/certify" desc="Certify a completed task on Base L2. Builds Merkle tree, sends TX, stores proofs." />
 
-            <H3>captureSync(input)</H3>
-            <P>Same as capture but synchronous — no server submission. Saves locally only.</P>
+              <H3>Certify request body</H3>
+              <Code>{
+`{
+  "slug": "5ce3974c"    // task slug to certify
+}`}
+              </Code>
 
-            <H3>startTask(task) / completeTask()</H3>
-            <Code>{`const task = await scanner.startTask({
-  agent_id: 'my-agent',
-  name: 'Task description',
-})
-// ... capture actions ...
-const result = await scanner.completeTask()
-// result.share_url → public link`}</Code>
+              <H3>Certify response</H3>
+              <Code>{
+`{
+  "success": true,
+  "tx_hash": "0x9112dc1a3d...",
+  "basescan_url": "https://basescan.org/tx/0x9112dc...",
+  "merkle_root": "0x489bb084...",
+  "batch_id": 0,
+  "block_number": 42654440,
+  "receipts_certified": 8,
+  "gas_used": 167234,
+  "cost_usd": 0.001
+}`}
+              </Code>
 
-            <H3>OpenClawScan.verify(receipt, originalOutput?)</H3>
-            <P>Static method — verify any receipt without server or API key.</P>
-            <Code>{`const result = OpenClawScan.verify(receipt)
+              <H2>Public endpoints (no auth)</H2>
+              <Endpoint method="GET" path="/api/public/task/{slug}" desc="Get public task data." />
+              <Endpoint method="GET" path="/api/public/task/{slug}/receipts" desc="Get all receipts for a task, including anchor data and Merkle proofs." />
+
+              <H2>Dashboard</H2>
+              <Endpoint method="GET" path="/api/dashboard/stats" desc="Get owner stats (total receipts, agents, tasks)." />
+              <Endpoint method="GET" path="/api/dashboard/tasks" desc="List all tasks with certification status." />
+              <Endpoint method="GET" path="/api/dashboard/agents" desc="List all agents." />
+              <Endpoint method="GET" path="/api/agents" desc="List/create agents (GET/POST)." />
+            </TBox>
+          )}
+
+          {active === 'verification' && (
+            <TBox title="VERIFICATION" color="#a78bfa">
+              <H2>How verification works</H2>
+              <P>
+                Every receipt is verified at three independent levels. Each level proves something
+                different, and each can be checked independently.
+              </P>
+
+              <H3>Level 1: Ed25519 Signature</H3>
+              <P>
+                The agent signs the receipt payload with its Ed25519 private key.
+                The signature covers every field (action, model, cost, hashes, context, timestamp).
+                Change one byte and the signature is invalid. Same cryptography as SSH and Signal.
+              </P>
+              <Code>{
+`// Verify in code
+import { OpenClawScan } from '@openclawscan/sdk';
+
+const result = OpenClawScan.verify(receipt);
 // { signatureValid: true, hashMatch: null }
 
-const result = OpenClawScan.verify(receipt, 'original output text')
-// { signatureValid: true, hashMatch: true }`}</Code>
+// With original output data
+const result2 = OpenClawScan.verify(receipt, originalOutput);
+// { signatureValid: true, hashMatch: true }`}
+              </Code>
 
-            <H2>Crypto utilities</H2>
-            <Code>{`import {
-  generateKeyPair,     // → { publicKey, secretKey } (Uint8Array)
-  serializeKeyPair,    // → { publicKey, secretKey } (base64 strings)
-  deserializeKeyPair,  // base64 → Uint8Array
-  sha256,              // string → 64-char hex hash
-  verifySignature,     // verify Ed25519 signature
-} from '@openclawscan/sdk'`}</Code>
-          </div>
-        )}
+              <H3>Level 2: E2E Encryption (AES-256-GCM)</H3>
+              <P>
+                Input/output hashes are encrypted with AES-256-GCM before being sent to the server.
+                The viewing key is embedded in the URL fragment (<code className="text-tx">#key=...</code>),
+                which is never sent to the server. The browser decrypts locally and verifies
+                that the decrypted hashes match the SHA-256 of the original data.
+              </P>
+              <P>
+                This means: even if someone compromises the server, they cannot read or modify
+                the receipt data. The server stores only encrypted blobs.
+              </P>
 
-        {active === 'api' && (
-          <div>
-            <h1 className="text-xl font-bold text-bright mb-2">API Reference</h1>
-            <P>All authenticated endpoints require <span className="text-tx">Authorization: Bearer ocs_your_key</span></P>
+              <H3>Level 3: Merkle Proof on Base L2</H3>
+              <P>
+                When a task is certified, all receipt hashes are assembled into a Merkle tree.
+                The root is stored on Base L2 via ClawVerify.sol. Each receipt gets a Merkle proof
+                (an array of sibling hashes) that can be verified against the on-chain root.
+              </P>
+              <P>
+                This is the ultimate guarantee: even if OpenClawScan disappears, anyone can
+                verify a receipt against the immutable on-chain root. The proof exists independently
+                of any server.
+              </P>
+              <Code>{
+`// Merkle fingerprint per receipt
+keccak256(receipt_id + ":" + input_sha256 + ":" + output_sha256)
 
-            <H2>POST /api/agents</H2>
-            <P>Register a new agent.</P>
-            <Code>{`{
-  "agent_id": "my-agent",
-  "display_name": "My Agent",
-  "public_key": "base64-ed25519-public-key",
-  "description": "Optional description"
-}`}</Code>
+// Tree construction
+merkletreejs with keccak256, sortPairs: true
 
-            <H2>POST /api/receipts</H2>
-            <P>Submit a signed receipt. Server verifies signature, checks time drift, stores receipt.</P>
-            <Code>{`// Full SignedReceipt object from SDK
-// Server returns:
-{
-  "receipt_id": "rcpt_xxxxxxxxxxxx",
-  "explorer_url": "https://openclawscan.xyz/receipt/rcpt_xxx",
-  "server_received_at": "2026-02-21T14:31:15Z"
-}`}</Code>
-            <P>Error responses: <span className="text-c-red">403</span> invalid signature · <span className="text-c-red">400</span> time drift &gt;5min · <span className="text-c-red">409</span> duplicate · <span className="text-c-red">429</span> limit reached</P>
+// On-chain verification
+ClawVerify.verifyReceipt(batchId, leaf, proof) → bool`}
+              </Code>
 
-            <H2>POST /api/tasks</H2>
-            <P>Create a new task. Returns slug for sharing.</P>
-            <Code>{`{ "agent_id": "my-agent", "name": "Task name" }
-// Returns: { task_id, slug, share_url, status }`}</Code>
+              <H3>Verification in the browser</H3>
+              <P>
+                When a client visits <code className="text-tx">/task/&#123;slug&#125;</code>, the browser
+                automatically runs all three verification levels and displays the results.
+                No server trust required — the cryptographic checks happen client-side.
+              </P>
+            </TBox>
+          )}
 
-            <H2>PATCH /api/tasks</H2>
-            <P>Complete or fail a task.</P>
-            <Code>{`{ "task_id": "uuid", "status": "completed" | "failed" }`}</Code>
+          {active === 'encryption' && (
+            <TBox title="E2E ENCRYPTION" color="#60a5fa">
+              <H2>End-to-End Encryption (v1.1+)</H2>
+              <P>
+                OpenClawScan uses AES-256-GCM to encrypt receipt data end-to-end.
+                The server never sees plaintext data — only encrypted blobs and hashes.
+              </P>
 
-            <H2>GET /api/receipts/verify</H2>
-            <P>Public — no auth required. Verify any receipt.</P>
-            <Code>{`GET /api/receipts/verify?receipt_id=rcpt_xxxxxxxxxxxx
+              <H3>How it works</H3>
+              <Code>{
+`1. Agent captures an action (input, output)
+2. SDK computes SHA-256 hashes of input and output
+3. A random AES-256-GCM viewing key is generated per task
+4. Hashes are encrypted with the viewing key
+5. Encrypted blobs are sent to the server
+6. Viewing key is embedded in the share URL fragment: #key=...
+7. URL fragments are never sent to the server (RFC 3986)
+8. Browser decrypts locally and verifies hashes`}
+              </Code>
 
-// Returns: { verified, details, receipt, agent }`}</Code>
+              <H3>Key properties</H3>
+              <div className="space-y-2 mb-4">
+                {[
+                  ['Zero plaintext on server', 'Server stores encrypted blobs. Cannot read receipt data.'],
+                  ['Key in URL fragment', 'Fragment (#key=...) is never transmitted to the server.'],
+                  ['Per-task keys', 'Each task gets its own viewing key. Revoking one does not affect others.'],
+                  ['Browser-only decryption', 'All decryption happens client-side via Web Crypto API.'],
+                  ['Forward secrecy', 'If a viewing key leaks, only that task is compromised.'],
+                ].map(([title, desc]) => (
+                  <div key={title} className="border-l-2 border-c-blue pl-3">
+                    <p className="text-[13px] font-bold text-bright">{title}</p>
+                    <p className="text-[12px] text-dim">{desc}</p>
+                  </div>
+                ))}
+              </div>
 
-            <H2>Rate limits</H2>
-            <P>OpenClawScan is completely free with no receipt limits. API keys are used for authentication, not gating.</P>
-          </div>
-        )}
+              <H3>Cipher details</H3>
+              <Code>{
+`Algorithm:  AES-256-GCM (NIST standard)
+Key size:   256 bits (32 bytes)
+IV:         96 bits (12 bytes, random per encryption)
+Auth tag:   128 bits (included in ciphertext)
+Encoding:   Base64 for storage and URL embedding
+API:        Web Crypto API (SubtleCrypto)`}
+              </Code>
+            </TBox>
+          )}
 
-        {active === 'verify' && (
-          <div>
-            <h1 className="text-xl font-bold text-bright mb-2">Verification</h1>
-            <P>Anyone can verify a receipt — no account, API key, or server trust needed.</P>
+          {active === 'onchain' && (
+            <TBox title="ON-CHAIN ANCHORING" color="#a78bfa">
+              <H2>Base L2 Blockchain Anchoring (v1.2)</H2>
+              <P>
+                OpenClawScan anchors Merkle roots on Base L2 mainnet via ClawVerify.sol.
+                This provides immutable, tamper-proof records that exist independently of
+                any centralized server.
+              </P>
 
-            <H2>How verification works</H2>
-            <TBox title="VERIFICATION STEPS" color="#22c55e">
-              <div className="text-[10.5px] text-dim leading-relaxed space-y-1">
-                <p><span className="text-accent">1.</span> Extract the payload (everything except signature)</p>
-                <p><span className="text-accent">2.</span> Serialize payload to canonical JSON</p>
-                <p><span className="text-accent">3.</span> Verify Ed25519 signature against payload + public key</p>
-                <p><span className="text-accent">4.</span> Check: public key matches registered agent</p>
-                <p><span className="text-accent">5.</span> Check: timestamp drift &lt; 5 minutes</p>
-                <p><span className="text-accent">6.</span> Check: sequence numbers have no gaps</p>
+              <H3>ClawVerify.sol</H3>
+              <Code>{
+`Contract: 0x095525d68481a84ffDD4740aaB07f425b84718D3
+Chain:    Base L2 mainnet (chain ID 8453)
+BaseScan: basescan.org/address/0x0955...18D3
+
+Functions:
+  certifyBatch(root, agent, slug, count)  // Store Merkle root
+  verifyReceipt(batchId, leaf, proof)     // Verify membership
+  getBatch(batchId) → BatchData           // Read batch data
+  batchCount() → uint256                  // Total batches
+
+Events:
+  BatchCertified(batchId, root, agent, slug, count, timestamp)`}
+              </Code>
+
+              <H3>Merkle tree construction</H3>
+              <P>When a task is certified:</P>
+              <Code>{
+`1. Fetch all receipts for the task
+2. For each receipt, compute fingerprint:
+     keccak256(receipt_id + ":" + input_sha256 + ":" + output_sha256)
+3. Build Merkle tree (merkletreejs, keccak256, sortPairs: true)
+4. Send certifyBatch(root, agent, slug, count) to Base L2
+5. Store TX hash, block number, and Merkle proofs per receipt
+6. Mark task as certified`}
+              </Code>
+
+              <H3>Verification</H3>
+              <P>Anyone can verify a receipt against the on-chain root:</P>
+              <Code>{
+`// On-chain (gas-free view call)
+ClawVerify.verifyReceipt(batchId, leaf, proof)
+
+// Local (using merkletreejs)
+const tree = new MerkleTree(leaves, keccak256, { sortPairs: true });
+tree.verify(proof, leaf, root)  // → true`}
+              </Code>
+
+              <H3>Cost</H3>
+              <div className="border border-faint bg-bg p-3 mb-4">
+                <pre className="text-[12px] leading-[1.8] text-dim">{
+`Deploy contract:     ~500K gas   ~$0.05 (one-time)
+certifyBatch():      ~167K gas   ~$0.001 per batch
+verifyReceipt():     0 gas       free (view function)
+getBatch():          0 gas       free (view function)`}
+                </pre>
+              </div>
+              <P>
+                One batch covers an entire task with all its receipts. At ~$0.001 per batch,
+                on-chain certification is practically free.
+              </P>
+
+              <H3>Live data</H3>
+              <div className="border border-accent/20 bg-accent/[.03] p-3">
+                <p className="text-[12px] text-dim mb-2">
+                  3 batches certified · 24 receipts on-chain · First block: 42654440
+                </p>
+                <a
+                  href="https://basescan.org/address/0x095525d68481a84ffDD4740aaB07f425b84718D3"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[12px] text-accent hover:text-bright transition-colors"
+                >
+                  View on BaseScan ↗
+                </a>
               </div>
             </TBox>
-
-            <H2>Client-side verification</H2>
-            <Code>{`import { OpenClawScan } from '@openclawscan/sdk'
-
-// Verify signature (no server needed)
-const result = OpenClawScan.verify(receipt)
-console.log(result.signatureValid) // true
-
-// Verify output hash (if you have the original output)
-const result = OpenClawScan.verify(receipt, originalOutput)
-console.log(result.hashMatch) // true`}</Code>
-
-            <H2>Browser verification</H2>
-            <P>Visit <span className="text-tx">openclawscan.xyz/receipt/[receipt_id]</span> — signatures are verified client-side in the browser. The server only provides the data; verification is independent.</P>
-
-            <H2>What can go wrong</H2>
-            <TBox title="TAMPER DETECTION" color="#ef4444">
-              <div className="text-[10.5px] text-dim space-y-2">
-                <p><span className="text-c-red font-bold">Modified receipt →</span> Signature becomes invalid. Ed25519 signatures cover the entire payload — change one byte and verification fails.</p>
-                <p><span className="text-c-red font-bold">Deleted receipt →</span> Sequence gap visible. If #1, #2, #4, #5 exist but #3 is missing — that gap is immediately obvious.</p>
-                <p><span className="text-c-red font-bold">Backdated receipt →</span> Server timestamp doesn't match. Agent and server timestamps are compared — drift &gt;5min is flagged.</p>
-                <p><span className="text-c-red font-bold">Forged receipt →</span> Wrong private key. Signature won't match the registered public key.</p>
-              </div>
-            </TBox>
-          </div>
-        )}
-
-        {active === 'privacy' && (
-          <div>
-            <h1 className="text-xl font-bold text-bright mb-2">Privacy model</h1>
-            <P>OpenClawScan is designed with a privacy-first architecture. Raw data never leaves your machine.</P>
-
-            <H2>What is stored remotely</H2>
-            <Code>{`receipt_id      ✓ stored   (identifier)
-timestamp       ✓ stored   (when it happened)
-action type     ✓ stored   (what kind of action)
-action name     ✓ stored   (what was called)
-model info      ✓ stored   (which model, token counts)
-cost            ✓ stored   (how much it cost)
-input           ✗ HASHED   (SHA-256, irreversible)
-output          ✗ HASHED   (SHA-256, irreversible)
-signature       ✓ stored   (Ed25519, for verification)`}</Code>
-
-            <H2>What stays local</H2>
-            <P>Every receipt is saved to <span className="text-tx">~/.openclawscan/receipts/</span> before transmission. Your local copy contains the full receipt (still with hashed I/O). The raw input/output text is never written anywhere by the SDK — it exists only in your application's memory during the <span className="text-tx">capture()</span> call.</P>
-
-            <H2>Visibility levels</H2>
-            <TBox title="VISIBILITY" color="#60a5fa">
-              <div className="text-[10.5px] text-dim space-y-2">
-                <p><span className="text-tx font-bold">private</span> — Only you can see this receipt (via dashboard with auth).</p>
-                <p><span className="text-tx font-bold">task_only</span> — Anyone with the task URL can see this receipt.</p>
-                <p><span className="text-tx font-bold">public</span> — Anyone can find and verify this receipt.</p>
-              </div>
-            </TBox>
-          </div>
-        )}
-
-        {active === 'selfhost' && (
-          <div>
-            <h1 className="text-xl font-bold text-bright mb-2">Self-hosting</h1>
-            <P>OpenClawScan is MIT licensed. You can run the entire stack on your own infrastructure.</P>
-
-            <H2>Requirements</H2>
-            <Code>{`Node.js >= 18
-PostgreSQL (or Supabase)
-Vercel / any Node.js host`}</Code>
-
-            <H2>Setup</H2>
-            <Code title="TERMINAL">{`$ git clone https://github.com/openclawscan/openclawscan.git
-$ cd openclawscan
-$ cp apps/web/.env.example apps/web/.env.local
-
-# Edit .env.local with your Supabase credentials
-$ nano apps/web/.env.local
-
-# Run migrations
-$ supabase db push
-
-# Start dev server
-$ npm run dev`}</Code>
-
-            <H2>Environment variables</H2>
-            <Code>{`NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-NEXT_PUBLIC_APP_URL=https://your-domain.com`}</Code>
-
-            <H2>SDK pointing to self-hosted</H2>
-            <Code>{`const scanner = new OpenClawScan({
-  agentId: 'my-agent',
-  ownerId: 'me',
-  secretKey: '...',
-  apiKey: 'ocs_...',
-  apiUrl: 'https://your-domain.com',  // ← your instance
-})`}</Code>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
