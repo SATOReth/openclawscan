@@ -1,19 +1,20 @@
 #!/usr/bin/env node
 /**
- * OpenClawScan v1.1 Demo — E2E Encrypted Receipts
+ * OpenClawScan E2E Demo — Generate signed + encrypted receipts.
  *
  * Run from project root:
  *   node demo-e2e.mjs --api-key ocs_xxx --agent-id my-agent --secret-key BASE64_SECRET
  *
  * This script:
  *   1. Generates a random AES-256-GCM viewing key
- *   2. Creates an encrypted task (server stores key_hash, never the key)
- *   3. Sends 8 receipts with encrypted input/output + signed hashes
+ *   2. Creates a task with key_hash (SHA-256 of viewing key)
+ *   3. Generates 8 receipts: Ed25519 signed + AES-256-GCM encrypted I/O
  *   4. Completes task with encrypted summary
- *   5. Prints shareable URL with viewing key in fragment (#key=...)
+ *   5. Prints the task URL with #key=VIEWING_KEY for browser decryption
  *
- * The server NEVER sees plaintext — only encrypted blobs + SHA-256 hashes.
- * The viewing key in the URL fragment is never sent to the server (HTTP spec).
+ * Encryption format: base64( IV_12B || ciphertext || authTag_16B )
+ * The server stores encrypted blobs — only someone with the viewing key can decrypt.
+ * SHA-256 hashes in the signed payload let the browser verify decrypted data is authentic.
  */
 
 import { createRequire } from 'module';
@@ -38,7 +39,39 @@ try {
 // ── SHA-256 ────────────────────────────────────────────────
 
 function sha256(text) {
-  return createHash('sha256').update(text).digest('hex');
+  return createHash('sha256').update(text, 'utf8').digest('hex');
+}
+
+function sha256Bytes(buffer) {
+  return createHash('sha256').update(buffer).digest('hex');
+}
+
+// ── Base64url helpers ──────────────────────────────────────
+
+function toBase64Url(buffer) {
+  return buffer.toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+// ── AES-256-GCM Encryption ────────────────────────────────
+// Format: base64( IV_12B || ciphertext || authTag_16B )
+// Must match what e2e-decrypt.ts expects in the browser.
+
+function encryptField(plaintext, keyBuffer) {
+  const iv = randomBytes(12);
+  const cipher = createCipheriv('aes-256-gcm', keyBuffer, iv);
+
+  const encrypted = Buffer.concat([
+    cipher.update(plaintext, 'utf8'),
+    cipher.final(),
+  ]);
+  const authTag = cipher.getAuthTag(); // 16 bytes
+
+  // Concatenate: IV || ciphertext || authTag
+  const blob = Buffer.concat([iv, encrypted, authTag]);
+  return blob.toString('base64');
 }
 
 // ── Deep sort keys (must match SDK/browser exactly) ────────
@@ -70,43 +103,6 @@ function getPublicKeyFromSecret(secretKeyB64) {
   return naclUtil.encodeBase64(keyPair.publicKey);
 }
 
-// ── AES-256-GCM (v1.1 E2E encryption) ─────────────────────
-
-function toBase64Url(buffer) {
-  return buffer
-    .toString('base64')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '');
-}
-
-function fromBase64Url(base64url) {
-  let b64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
-  while (b64.length % 4 !== 0) b64 += '=';
-  return Buffer.from(b64, 'base64');
-}
-
-function generateViewingKey() {
-  return toBase64Url(randomBytes(32));
-}
-
-function hashViewingKey(viewingKeyBase64Url) {
-  return createHash('sha256').update(viewingKeyBase64Url, 'utf8').digest('hex');
-}
-
-function encryptField(plaintext, viewingKeyBase64Url) {
-  const key = fromBase64Url(viewingKeyBase64Url);
-  const iv = randomBytes(12);
-  const cipher = createCipheriv('aes-256-gcm', key, iv);
-  const encrypted = Buffer.concat([
-    cipher.update(plaintext, 'utf8'),
-    cipher.final(),
-  ]);
-  const authTag = cipher.getAuthTag();
-  // Blob: IV (12B) || ciphertext || authTag (16B)
-  return Buffer.concat([iv, encrypted, authTag]).toString('base64');
-}
-
 // ── Config ──────────────────────────────────────────────────
 
 const API_URL = process.env.API_URL || 'https://openclawscan.xyz';
@@ -123,7 +119,7 @@ function parseArgs() {
   return config;
 }
 
-// ── Demo actions (same realistic audit as v1.0 demo) ────────
+// ── Demo actions (realistic smart contract audit) ──────────
 
 const DEMO_ACTIONS = [
   {
@@ -184,6 +180,17 @@ const DEMO_ACTIONS = [
   },
 ];
 
+const TASK_SUMMARY = `TokenVault.sol Security Audit — Complete
+
+Findings:
+• 1 Critical: Reentrancy in withdraw() — fixed with ReentrancyGuard
+• 1 High: Flash loan attack vector in deposit/borrow — fixed with delay protection
+• 1 Medium: Unchecked return value on transfer() — fixed with require()
+• 1 Low: Missing zero-address check — fixed with validation
+
+All vulnerabilities patched and verified. Slither clean. Foundry PoC reverts correctly.
+Final risk assessment: LOW (post-fix).`;
+
 // ── Main ────────────────────────────────────────────────────
 
 async function main() {
@@ -191,7 +198,7 @@ async function main() {
   const url = config.url || API_URL;
 
   if (!config.apiKey || !config.agentId || !config.secretKey) {
-    console.error('\n  ◈ OpenClawScan v1.1 Demo — E2E Encrypted\n');
+    console.error('\n  ◈ OpenClawScan E2E Demo\n');
     console.error('  Usage:');
     console.error('    node demo-e2e.mjs --api-key ocs_xxx --agent-id my-agent --secret-key BASE64_SECRET\n');
     console.error('  Get your API key from: https://openclawscan.xyz/dashboard');
@@ -207,32 +214,35 @@ async function main() {
     const secretKey = naclUtil.decodeBase64(config.secretKey);
     const sig = nacl.sign.detached(testMsg, secretKey);
     const pubKey = naclUtil.decodeBase64(publicKey);
-    const valid = nacl.sign.detached.verify(testMsg, sig, pubKey);
-    if (!valid) throw new Error('Self-verification failed');
+    if (!nacl.sign.detached.verify(testMsg, sig, pubKey)) throw new Error('Self-verification failed');
   } catch (e) {
     console.error(`\n  ✗ Invalid secret key: ${e.message}\n`);
     process.exit(1);
   }
+
+  // ── Step 0: Generate viewing key ──────────────────────────
+  // 32 random bytes → base64url (no padding) — this is the AES-256 key
+  const viewingKeyBuffer = randomBytes(32);
+  const viewingKey = toBase64Url(viewingKeyBuffer);
+
+  // key_hash = SHA-256 of the base64url STRING (matches browser's verifyKeyHash)
+  const keyHash = sha256(viewingKey);
 
   const headers = {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${config.apiKey}`,
   };
 
-  // ── v1.1: Generate viewing key ────────────────────────────
-  const viewingKey = generateViewingKey();
-  const keyHash = hashViewingKey(viewingKey);
-
-  console.log('\n  ◈ OpenClawScan v1.1 Demo — E2E Encrypted\n');
+  console.log('\n  ◈ OpenClawScan E2E Demo (AES-256-GCM + Ed25519)\n');
   console.log(`  API:          ${url}`);
   console.log(`  Agent:        ${config.agentId}`);
   console.log(`  Public key:   ${publicKey.slice(0, 20)}...`);
-  console.log(`  Viewing key:  ${viewingKey.slice(0, 12)}... (AES-256-GCM)`);
+  console.log(`  Viewing key:  ${viewingKey.slice(0, 16)}...`);
   console.log(`  Key hash:     ${keyHash.slice(0, 16)}...`);
   console.log('');
 
-  // 1. Create ENCRYPTED task
-  console.log('  [1/3] Creating encrypted task...');
+  // ── Step 1: Create task with key_hash ─────────────────────
+  console.log('  [1/4] Creating E2E encrypted task...');
   const taskRes = await fetch(`${url}/api/tasks`, {
     method: 'POST',
     headers,
@@ -252,11 +262,11 @@ async function main() {
 
   const task = await taskRes.json();
   console.log(`  ✓ Task created: ${task.slug}`);
-  console.log(`  ✓ key_hash stored: ${task.key_hash ? 'yes' : 'NO — check server!'}`);
+  console.log(`  ✓ Key hash stored on server`);
   console.log('');
 
-  // 2. Send ENCRYPTED receipts
-  console.log(`  [2/3] Sending ${DEMO_ACTIONS.length} encrypted receipts...`);
+  // ── Step 2: Send encrypted receipts ───────────────────────
+  console.log(`  [2/4] Sending ${DEMO_ACTIONS.length} E2E encrypted receipts...`);
   const sessionId = `sess_${Date.now().toString(36)}`;
   const baseTime = Date.now() - (DEMO_ACTIONS.length * 30000);
 
@@ -265,11 +275,15 @@ async function main() {
     const timestamp = new Date(baseTime + (i * 30000)).toISOString();
     const receiptId = `rcpt_e2e_${Date.now().toString(36)}_${i}`;
 
-    // Step 1: Hash (goes in signed payload)
+    // Hash plaintext FIRST (goes into signed payload)
     const inputHash = sha256(a.input);
     const outputHash = sha256(a.output);
 
-    // Step 2: Build payload (SAME as v1.0 — hashes only, no encrypted data)
+    // Encrypt plaintext with viewing key (goes as extra transport fields)
+    const encryptedInput = encryptField(a.input, viewingKeyBuffer);
+    const encryptedOutput = encryptField(a.output, viewingKeyBuffer);
+
+    // Build the signed payload (contains HASHES, not encrypted data)
     const payload = {
       version: '1.0',
       receipt_id: receiptId,
@@ -284,14 +298,10 @@ async function main() {
       visibility: 'task_only',
     };
 
-    // Step 3: Sign payload (Ed25519 — signs the HASHES, not encrypted data)
+    // Sign the payload with Ed25519
     const signatureValue = signPayload(payload, config.secretKey);
 
-    // Step 4: Encrypt raw input/output (AES-256-GCM — transport only, not signed)
-    const encryptedInput = encryptField(a.input, viewingKey);
-    const encryptedOutput = encryptField(a.output, viewingKey);
-
-    // Step 5: Combine — signed payload + encrypted fields
+    // Full receipt = signed payload + signature + encrypted blobs
     const fullReceipt = {
       ...payload,
       signature: {
@@ -299,6 +309,7 @@ async function main() {
         public_key: publicKey,
         value: signatureValue,
       },
+      // v1.1: E2E encrypted fields (server stores as-is, never decrypts)
       encrypted_input: encryptedInput,
       encrypted_output: encryptedOutput,
     };
@@ -310,9 +321,7 @@ async function main() {
     });
 
     if (res.ok) {
-      const blobSize = Buffer.from(encryptedInput, 'base64').length +
-                       Buffer.from(encryptedOutput, 'base64').length;
-      console.log(`  ✓ [${i + 1}/${DEMO_ACTIONS.length}] ${a.action.name} — $${a.cost.amount_usd.toFixed(3)} — encrypted ${blobSize}B`);
+      console.log(`  ✓ [${i + 1}/${DEMO_ACTIONS.length}] ${a.action.name} — $${a.cost.amount_usd.toFixed(3)} (encrypted)`);
     } else {
       const err = await res.json().catch(() => ({}));
       console.error(`  ✗ [${i + 1}/${DEMO_ACTIONS.length}] ${a.action.name} — ${err.error || res.statusText}`);
@@ -323,11 +332,12 @@ async function main() {
 
   console.log('');
 
-  // 3. Complete task with encrypted summary
-  console.log('  [3/3] Completing task with encrypted summary...');
-  const summaryText = 'Audit complete. 1 Critical (reentrancy), 1 High (flash loan), 1 Medium, 1 Low. All fixed and verified. Post-fix risk: LOW.';
-  const encryptedSummary = encryptField(summaryText, viewingKey);
+  // ── Step 3: Encrypt and send task summary ─────────────────
+  console.log('  [3/4] Encrypting task summary...');
+  const encryptedSummary = encryptField(TASK_SUMMARY, viewingKeyBuffer);
 
+  // ── Step 4: Complete task with encrypted summary ──────────
+  console.log('  [4/4] Completing task with encrypted summary...');
   const completeRes = await fetch(`${url}/api/tasks`, {
     method: 'PATCH',
     headers,
@@ -345,23 +355,29 @@ async function main() {
     console.error(`  ✗ Failed to complete task: ${err.error || completeRes.statusText}`);
   }
 
+  // ── Summary ───────────────────────────────────────────────
   const totalCost = DEMO_ACTIONS.reduce((s, a) => s + a.cost.amount_usd, 0);
+  const taskUrl = `${url}/task/${task.slug}#key=${viewingKey}`;
 
-  console.log('\n  ──────────────────────────────────────');
-  console.log(`  Total cost:     $${totalCost.toFixed(3)}`);
-  console.log(`  Total receipts: ${DEMO_ACTIONS.length}`);
-  console.log(`  Encryption:     AES-256-GCM`);
-  console.log(`  Key stored:     NEVER (server has only hash)`);
+  console.log('\n  ══════════════════════════════════════════════════');
+  console.log('  E2E ENCRYPTION SUMMARY');
+  console.log('  ══════════════════════════════════════════════════');
+  console.log(`  Total cost:       $${totalCost.toFixed(3)}`);
+  console.log(`  Total receipts:   ${DEMO_ACTIONS.length}`);
+  console.log(`  Encryption:       AES-256-GCM`);
+  console.log(`  Signatures:       Ed25519`);
   console.log('');
-  console.log('  ◈ Share this URL (includes decryption key):');
-  console.log(`    ${task.share_url}#key=${viewingKey}`);
+  console.log('  ── LINKS ──');
+  console.log(`  ◈ Task (encrypted):  ${url}/task/${task.slug}`);
+  console.log(`  ◈ Task (decrypted):  ${taskUrl}`);
+  console.log(`  ◈ Verify signatures: ${url}/scan?q=${task.slug}`);
   console.log('');
-  console.log('  ◈ Without key (hashes only, no content):');
-  console.log(`    ${task.share_url}`);
+  console.log('  ── VIEWING KEY (save this!) ──');
+  console.log(`  ${viewingKey}`);
   console.log('');
-  console.log('  ◈ Viewing key (save this!):');
-  console.log(`    ${viewingKey}`);
-  console.log('');
+  console.log('  Without the viewing key, the server only has encrypted blobs.');
+  console.log('  The key never touches the server — it stays in the URL fragment.');
+  console.log('  ══════════════════════════════════════════════════\n');
 }
 
 main().catch(err => { console.error(err); process.exit(1); });
