@@ -36,7 +36,9 @@ export async function GET(
       session_id, sequence, visibility,
       signature_algorithm, signature_public_key, signature_value,
       signed_payload,
-      encrypted_input, encrypted_output
+      encrypted_input, encrypted_output,
+      anchor_chain, anchor_tx_hash, anchor_batch_id, anchored_at,
+      merkle_proof, certification_batch_id
     `)
     .eq('task_id', task.id)
     .in('visibility', ['public', 'task_only'])
@@ -79,6 +81,12 @@ export async function GET(
       // v1.1: E2E encrypted fields (null for v1.0 receipts)
       encrypted_input: r.encrypted_input || null,
       encrypted_output: r.encrypted_output || null,
+      // Phase 2: on-chain anchoring
+      anchor_tx_hash: r.anchor_tx_hash || null,
+      anchor_batch_id: r.anchor_batch_id || null,
+      anchor_chain: r.anchor_chain || null,
+      anchored_at: r.anchored_at || null,
+      merkle_proof: r.merkle_proof || null,
     })),
   });
 }
