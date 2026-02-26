@@ -80,6 +80,9 @@ export default function Home() {
         <a href="/task/5ce3974c" className="text-[12px] text-accent hover:text-bright transition-colors mt-2 inline-block">
           See a live example → 8 receipts, 3-level verified, on Base L2
         </a>
+        <a href="/task/5ce3974c" className="text-[12px] text-accent hover:text-bright transition-colors mt-2 inline-block">
+          See a live example → 8 receipts, 3-level verified, on Base L2
+        </a>
       </div>
 
       {/* ── 3-Level Verification Stack ── */}

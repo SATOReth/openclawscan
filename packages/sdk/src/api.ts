@@ -1,17 +1,17 @@
 import type {
   SignedReceipt,
-  EncryptedReceipt,
   SubmitReceiptResponse,
   TaskCreate,
-  EncryptedTaskCreate,
   TaskInfo,
+  CertifyRequest,
+  CertifyResponse,
 } from './types';
 
 const DEFAULT_API_URL = 'https://openclawscan.xyz/api';
 
 /**
  * HTTP client for the OpenClawScan API.
- * Handles receipt submission, task management, and verification.
+ * Handles receipt submission, task management, certification, and verification.
  */
 export class ApiClient {
   private apiUrl: string;
@@ -53,9 +53,8 @@ export class ApiClient {
 
   /**
    * Submit a signed receipt to the server.
-   * v1.1: Also sends encrypted_input/encrypted_output if present.
    */
-  async submitReceipt(receipt: SignedReceipt | EncryptedReceipt): Promise<SubmitReceiptResponse> {
+  async submitReceipt(receipt: SignedReceipt): Promise<SubmitReceiptResponse> {
     return this.request<SubmitReceiptResponse>('POST', '/receipts', receipt);
   }
 
@@ -63,7 +62,7 @@ export class ApiClient {
    * Submit multiple receipts in a batch.
    */
   async submitBatch(
-    receipts: (SignedReceipt | EncryptedReceipt)[]
+    receipts: SignedReceipt[]
   ): Promise<SubmitReceiptResponse[]> {
     return this.request<SubmitReceiptResponse[]>('POST', '/receipts/batch', {
       receipts,
@@ -72,26 +71,17 @@ export class ApiClient {
 
   /**
    * Create a new task (group of receipts).
-   * v1.1: Can include key_hash for E2E encrypted tasks.
    */
-  async createTask(task: TaskCreate | EncryptedTaskCreate): Promise<TaskInfo> {
+  async createTask(task: TaskCreate): Promise<TaskInfo> {
     return this.request<TaskInfo>('POST', '/tasks', task);
   }
 
   /**
    * Complete a task and get the shareable URL.
-   * v1.1: Can include encrypted_summary.
    */
-  async completeTask(
-    taskId: string,
-    options?: { encrypted_summary?: string }
-  ): Promise<TaskInfo> {
-    return this.request<TaskInfo>('PATCH', '/tasks', {
-      task_id: taskId,
+  async completeTask(taskId: string): Promise<TaskInfo> {
+    return this.request<TaskInfo>('PATCH', `/tasks/${taskId}`, {
       status: 'completed',
-      ...(options?.encrypted_summary && {
-        encrypted_summary: options.encrypted_summary,
-      }),
     });
   }
 
@@ -100,5 +90,18 @@ export class ApiClient {
    */
   async getTask(taskId: string): Promise<TaskInfo> {
     return this.request<TaskInfo>('GET', `/tasks/${taskId}`);
+  }
+
+  /**
+   * Certify a completed task on Base L2.
+   * Builds a Merkle tree from all receipt hashes and anchors the root on-chain
+   * via ClawVerify.sol. Returns the transaction hash and certification details.
+   *
+   * @param slug - The task slug to certify
+   * @returns Certification result including tx_hash, merkle_root, and basescan_url
+   */
+  async certify(slug: string): Promise<CertifyResponse> {
+    const body: CertifyRequest = { slug };
+    return this.request<CertifyResponse>('POST', '/tasks/certify', body);
   }
 }

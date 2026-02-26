@@ -1,9 +1,8 @@
 import { randomBytes } from 'crypto';
-import { sha256, signPayload, encryptField } from './crypto';
+import { sha256, signPayload } from './crypto';
 import {
   ReceiptPayload,
   SignedReceipt,
-  EncryptedReceipt,
   ActionType,
   Visibility,
 } from './types';
@@ -70,7 +69,6 @@ export class ReceiptBuilder {
   private sessionId: string;
   private sequence: number;
   private defaultVisibility: Visibility;
-  private viewingKey: string | null;
 
   constructor(config: {
     agentId: string;
@@ -78,7 +76,6 @@ export class ReceiptBuilder {
     secretKey: string;
     sessionId?: string;
     defaultVisibility?: Visibility;
-    viewingKey?: string; // v1.1: AES-256-GCM key for E2E encryption
   }) {
     this.agentId = config.agentId;
     this.ownerId = config.ownerId;
@@ -86,18 +83,13 @@ export class ReceiptBuilder {
     this.sessionId = config.sessionId || generateSessionId();
     this.sequence = 0;
     this.defaultVisibility = config.defaultVisibility || 'private';
-    this.viewingKey = config.viewingKey || null;
   }
 
   /**
    * Build and sign a receipt from action input.
-   * The raw input/output are hashed — only hashes are stored in the signed payload.
-   * 
-   * v1.1: If a viewing key is set, also encrypts raw input/output with AES-256-GCM.
-   * The encrypted fields are NOT part of the signed payload — they're transport-only.
-   * Verification: decrypt(encrypted_input) → SHA-256 must match hashes.input_sha256
+   * The raw input/output are hashed — only hashes are stored in the receipt.
    */
-  build(input: ReceiptInput): EncryptedReceipt {
+  build(input: ReceiptInput): SignedReceipt {
     const receiptId = generateReceiptId();
     const timestamp = new Date().toISOString();
     const sequence = this.sequence++;
@@ -107,11 +99,8 @@ export class ReceiptBuilder {
     const outputHash = sha256(input.output);
 
     // Build the payload (the data that gets signed)
-    // NOTE: encrypted fields are deliberately EXCLUDED from the signed payload.
-    // The SHA-256 hashes in the payload cryptographically bind the encrypted content:
-    //   decrypt(encrypted_input) → SHA-256 must equal hashes.input_sha256
     const payload: ReceiptPayload = {
-      version: '1.0',
+      version: '1.2',
       receipt_id: receiptId,
       agent_id: this.agentId,
       owner_id: this.ownerId,
@@ -143,43 +132,27 @@ export class ReceiptBuilder {
       visibility: input.visibility ?? this.defaultVisibility,
     };
 
-    // Sign the payload (Ed25519)
+    // Sign the payload
     const signature = signPayload(payload, this.secretKey);
 
-    // v1.1: Encrypt raw input/output if viewing key is available
-    let encrypted_input: string | null = null;
-    let encrypted_output: string | null = null;
-
-    if (this.viewingKey) {
-      encrypted_input = encryptField(input.input, this.viewingKey);
-      encrypted_output = encryptField(input.output, this.viewingKey);
-    }
-
-    // Return the complete receipt
-    const receipt: EncryptedReceipt = {
+    // Return the complete signed receipt
+    const signedReceipt: SignedReceipt = {
       ...payload,
       signature,
       server_received_at: null,
-      encrypted_input,
-      encrypted_output,
+      // E2E encryption fields — populated by server or SDK extension
+      encrypted_input: null,
+      encrypted_output: null,
+      viewing_key_hash: null,
+      // Blockchain anchoring — populated after certification
+      merkle_proof: null,
+      anchor_chain: null,
+      anchor_tx_hash: null,
+      anchor_block_number: null,
+      anchor_batch_id: null,
     };
 
-    return receipt;
-  }
-
-  /**
-   * Set or update the viewing key for E2E encryption.
-   * Called when starting a new encrypted task.
-   */
-  setViewingKey(key: string | null): void {
-    this.viewingKey = key;
-  }
-
-  /**
-   * Check if E2E encryption is active.
-   */
-  hasViewingKey(): boolean {
-    return this.viewingKey !== null;
+    return signedReceipt;
   }
 
   /**

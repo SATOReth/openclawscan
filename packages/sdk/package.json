@@ -1,6 +1,6 @@
 {
   "name": "@openclawscan/sdk",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Tamper-proof receipts for AI agents — Ed25519 signed, SHA-256 hashed, verifiable by anyone",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
