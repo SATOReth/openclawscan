@@ -38,6 +38,8 @@ export async function GET(req: NextRequest) {
       visibility,
       signature_algorithm, signature_public_key, signature_value,
       signed_payload,
+      anchor_chain, anchor_tx_hash, anchor_batch_id, anchored_at,
+      merkle_proof,
       agents!inner(agent_id, display_name, public_key, is_public),
       owners!inner(display_name)
     `)
@@ -155,6 +157,13 @@ export async function GET(req: NextRequest) {
       name: agent.display_name,
       public_key: agent.public_key,
     },
+    anchor: receipt.anchor_tx_hash ? {
+      chain: receipt.anchor_chain || "base_l2",
+      tx_hash: receipt.anchor_tx_hash,
+      batch_id: receipt.anchor_batch_id,
+      anchored_at: receipt.anchored_at,
+      merkle_proof: receipt.merkle_proof || null,
+    } : null,
     verification_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://openclawscan.xyz'}/receipt/${receipt.receipt_id}`,
   });
 }

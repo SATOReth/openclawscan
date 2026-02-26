@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { TBox, Stat, StatusBadge, BackBtn, Skeleton, Empty } from '@/components/ui';
+import { ReceiptMerkleBadge } from '@/components/chain-badge';
 
 interface VerifyResponse {
   verified: boolean;
@@ -22,6 +23,18 @@ interface VerifyResponse {
     hashes: { input: string; output: string };
   };
   agent: { id: string; name: string; public_key: string };
+  // Phase 2: on-chain anchoring
+  anchor: {
+    chain: string | null;
+    tx_hash: string | null;
+    batch_id: string | null;
+    anchored_at: string | null;
+    merkle_proof: {
+      proof: string[];
+      leaf: string;
+      index: number;
+    } | null;
+  } | null;
 }
 
 function formatDuration(ms: number) {
@@ -67,6 +80,8 @@ export default function ReceiptPage() {
   const r = data.receipt;
   const d = data.details;
   const ok = !verifying && data.verified;
+  const anchor = data.anchor;
+  const isAnchored = !!anchor?.tx_hash;
 
   const checks: [string, string, boolean][] = [
     ['Signature', verifying ? 'checking…' : d.signature_valid ? 'valid' : 'INVALID', !verifying && d.signature_valid],
@@ -74,6 +89,7 @@ export default function ReceiptPage() {
     ['Key match', verifying ? 'checking…' : d.key_registered ? 'confirmed' : 'MISMATCH', !verifying && d.key_registered],
     ['Time drift', `${d.time_drift_ms}ms`, d.time_drift_acceptable],
     ['Tampering', verifying ? 'checking…' : ok ? 'none' : 'DETECTED', !verifying && ok],
+    ['On-chain', isAnchored ? `Batch #${anchor?.batch_id}` : 'not anchored', isAnchored],
   ];
 
   return (
@@ -82,7 +98,14 @@ export default function ReceiptPage() {
 
       {/* ── Header ── */}
       <div className="mb-4">
-        <StatusBadge ok={ok} loading={verifying} />
+        <div className="flex items-center gap-2">
+          <StatusBadge ok={ok} loading={verifying} />
+          {isAnchored && (
+            <span className="text-[9px] px-1.5 py-0.5 border text-accent border-accent/30 bg-accent/5">
+              ⛓ ON-CHAIN
+            </span>
+          )}
+        </div>
         <h1 className="text-[clamp(20px,2.5vw,28px)] font-bold text-bright mt-2.5 mb-1">
           {r.action.name}
         </h1>
@@ -93,7 +116,7 @@ export default function ReceiptPage() {
         {/* ── Verification checks ── */}
         <TBox title="VERIFICATION" color={ok ? '#22c55e' : verifying ? '#666' : '#ef4444'}>
           {checks.map(([k, v, good], i) => (
-            <div key={k} className={`flex justify-between py-2 ${i < 4 ? 'border-b border-faint' : ''} text-[11px]`}>
+            <div key={k} className={`flex justify-between py-2 ${i < checks.length - 1 ? 'border-b border-faint' : ''} text-[11px]`}>
               <span className="text-dim">{k}</span>
               <span className={`transition-colors ${good ? 'text-accent' : 'text-ghost'}`}>
                 {good ? '✓ ' : ''}{v}
@@ -129,6 +152,22 @@ export default function ReceiptPage() {
               </div>
             </div>
           </TBox>
+        </div>
+      </div>
+
+      {/* ── On-chain Merkle Proof ── */}
+      <div className="mb-4">
+        <div className="text-[10px] tracking-wide overflow-hidden whitespace-nowrap" style={{ color: isAnchored ? '#22c55e' : '#333' }}>
+          ┌── <span className="text-dim">BLOCKCHAIN ANCHORING</span>{' '}{'─'.repeat(44)}
+        </div>
+        <ReceiptMerkleBadge
+          isAnchored={isAnchored}
+          anchorTxHash={anchor?.tx_hash}
+          anchorBatchId={anchor?.batch_id}
+          merkleProof={anchor?.merkle_proof}
+        />
+        <div className="text-[10px] overflow-hidden whitespace-nowrap" style={{ color: isAnchored ? '#22c55e' : '#333' }}>
+          └{'─'.repeat(66)}
         </div>
       </div>
 
