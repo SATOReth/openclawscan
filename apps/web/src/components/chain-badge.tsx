@@ -1,26 +1,17 @@
 /**
- * components/chain-badge.tsx — On-chain certification badge for tasks and receipts.
- *
- * Shows ⛓ ON-CHAIN verified badge with BaseScan link.
- * Used on /task/[slug] pages and /scan/[id] receipt pages.
- *
- * Three variants:
- * - TaskBadge:    Full badge with certify button (for task owner) or verified state
- * - ReceiptBadge: Compact inline badge for individual receipts
- * - CertifyButton: Action button to trigger certification (task owner only)
+ * components/chain-badge.tsx — On-chain certification badge.
+ * Matches the OpenClawScan terminal aesthetic (JetBrains Mono, box-drawing, dark palette).
  */
 
 'use client';
 
 import { useState } from 'react';
 
-// ─── Constants ──────────────────────────────────────────────
-
-const BASE_EXPLORER = 'https://basescan.org';
+const EXPLORER = 'https://basescan.org';
 
 // ─── Types ──────────────────────────────────────────────────
 
-interface CertificationData {
+export interface CertificationData {
   tx_hash: string;
   block_number?: number;
   merkle_root: string;
@@ -29,6 +20,7 @@ interface CertificationData {
   certified_at: string;
   receipt_count: number;
   cost_eth?: string;
+  explorer_url?: string;
 }
 
 interface MerkleProofData {
@@ -37,8 +29,7 @@ interface MerkleProofData {
   index: number;
 }
 
-// ─── Task Badge ─────────────────────────────────────────────
-// Full certification badge for task pages.
+// ─── Task Certification Badge ───────────────────────────────
 
 export function TaskCertificationBadge({
   isCertified,
@@ -56,181 +47,153 @@ export function TaskCertificationBadge({
   onCertified?: (data: CertificationData) => void;
 }) {
   if (isCertified && certification) {
-    return <CertifiedBadge certification={certification} />;
+    return <CertifiedBlock certification={certification} />;
   }
-
   if (isOwner && taskStatus === 'completed') {
-    return <CertifyButton taskId={taskId} onCertified={onCertified} />;
+    return <CertifyAction taskId={taskId} onCertified={onCertified} />;
   }
-
-  // Not certified, not owner or not completed
-  return <NotCertifiedBadge taskStatus={taskStatus} />;
+  return <UncertifiedBlock taskStatus={taskStatus} />;
 }
 
-// ─── Certified Badge ────────────────────────────────────────
+// ─── Certified ──────────────────────────────────────────────
 
-function CertifiedBadge({ certification }: { certification: CertificationData }) {
-  const [expanded, setExpanded] = useState(false);
-  const txUrl = `${BASE_EXPLORER}/tx/${certification.tx_hash}`;
-  const contractUrl = `${BASE_EXPLORER}/address/${certification.contract_address}`;
-  const date = new Date(certification.certified_at).toLocaleDateString('en-US', {
-    year: 'numeric', month: 'short', day: 'numeric',
+function CertifiedBlock({ certification }: { certification: CertificationData }) {
+  const [open, setOpen] = useState(false);
+  const txUrl = `${EXPLORER}/tx/${certification.tx_hash}`;
+  const contractUrl = `${EXPLORER}/address/${certification.contract_address}`;
+  const date = new Date(certification.certified_at).toLocaleString('en-GB', {
+    day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
   });
 
   return (
-    <div className="border border-emerald-500/30 bg-emerald-500/[.04] rounded-none">
-      {/* Header */}
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-emerald-500/[.06] transition-colors"
-      >
-        <div className="flex items-center gap-2.5">
-          <span className="text-emerald-400 text-[14px]">⛓</span>
-          <span className="text-emerald-400 text-[12px] font-bold tracking-wider uppercase">
-            On-Chain Verified
-          </span>
-          <span className="text-[10px] text-emerald-400/60 font-mono">
-            Base L2
-          </span>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-[10px] text-neutral-500">{date}</span>
-          <span className="text-[10px] text-neutral-600">
-            {expanded ? '▲' : '▼'}
-          </span>
-        </div>
-      </button>
+    <div>
+      {/* TBox-style header */}
+      <div className="text-[10px] tracking-wide overflow-hidden whitespace-nowrap text-accent">
+        ┌── <span className="text-dim">ON-CHAIN CERTIFICATION</span>{' '}{'─'.repeat(44)}
+      </div>
 
-      {/* Expanded details */}
-      {expanded && (
-        <div className="px-4 pb-4 pt-1 border-t border-emerald-500/10 space-y-3">
-          {/* TX Hash */}
-          <div>
-            <p className="text-[9px] text-neutral-600 tracking-widest mb-1">TRANSACTION</p>
-            <a
-              href={txUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[11px] text-emerald-400 hover:text-emerald-300 font-mono break-all transition-colors"
-            >
-              {certification.tx_hash}
-              <span className="text-[9px] ml-1">↗</span>
-            </a>
+      <div className="bg-card" style={{ borderLeft: '1px solid #22c55e44', borderRight: '1px solid #22c55e44' }}>
+        {/* Summary row */}
+        <button
+          onClick={() => setOpen(!open)}
+          className="w-full flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-hl transition-colors text-left"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-accent text-[13px]">⛓</span>
+            <span className="text-[10px] text-accent font-bold tracking-widest uppercase">VERIFIED</span>
+            <span className="text-[9px] text-ghost">Base L2 · Batch #{certification.batch_id_onchain}</span>
           </div>
-
-          {/* Merkle Root */}
-          <div>
-            <p className="text-[9px] text-neutral-600 tracking-widest mb-1">MERKLE ROOT</p>
-            <p className="text-[10px] text-neutral-400 font-mono break-all">
-              {certification.merkle_root}
-            </p>
+          <div className="flex items-center gap-3">
+            <span className="text-[9px] text-ghost">{date}</span>
+            <span className="text-[9px] text-ghost">{open ? '▲' : '▼'}</span>
           </div>
+        </button>
 
-          {/* Stats row */}
-          <div className="flex gap-6">
+        {/* Expandable details */}
+        {open && (
+          <div className="px-4 pb-4 pt-1 border-t border-faint space-y-3">
+            {/* TX Hash */}
             <div>
-              <p className="text-[9px] text-neutral-600 tracking-widest mb-1">BATCH ID</p>
-              <p className="text-[12px] text-neutral-300 font-mono">
-                #{certification.batch_id_onchain}
-              </p>
+              <p className="text-[8px] text-ghost tracking-widest mb-0.5">TX HASH</p>
+              <a
+                href={txUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10px] text-accent hover:text-accent-dim font-mono break-all transition-colors"
+              >
+                {certification.tx_hash} <span className="text-[8px]">↗</span>
+              </a>
             </div>
-            <div>
-              <p className="text-[9px] text-neutral-600 tracking-widest mb-1">RECEIPTS</p>
-              <p className="text-[12px] text-neutral-300 font-mono">
-                {certification.receipt_count}
-              </p>
-            </div>
-            {certification.block_number && (
-              <div>
-                <p className="text-[9px] text-neutral-600 tracking-widest mb-1">BLOCK</p>
-                <p className="text-[12px] text-neutral-300 font-mono">
-                  {certification.block_number.toLocaleString()}
-                </p>
-              </div>
-            )}
-            {certification.cost_eth && (
-              <div>
-                <p className="text-[9px] text-neutral-600 tracking-widest mb-1">COST</p>
-                <p className="text-[12px] text-neutral-300 font-mono">
-                  {certification.cost_eth} ETH
-                </p>
-              </div>
-            )}
-          </div>
 
-          {/* Links */}
-          <div className="flex gap-3 pt-1">
-            <a
-              href={txUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[10px] text-emerald-400/70 hover:text-emerald-400 border border-emerald-500/20 px-3 py-1.5 transition-colors"
-            >
-              View on BaseScan ↗
-            </a>
-            <a
-              href={contractUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[10px] text-neutral-500 hover:text-neutral-300 border border-neutral-700 px-3 py-1.5 transition-colors"
-            >
-              Contract ↗
-            </a>
+            {/* Merkle Root */}
+            <div>
+              <p className="text-[8px] text-ghost tracking-widest mb-0.5">MERKLE ROOT</p>
+              <p className="text-[10px] text-dim font-mono break-all">{certification.merkle_root}</p>
+            </div>
+
+            {/* Stats grid */}
+            <div className="grid grid-cols-4 gap-px bg-faint">
+              {[
+                ['BATCH', `#${certification.batch_id_onchain}`],
+                ['RECEIPTS', String(certification.receipt_count)],
+                ['BLOCK', certification.block_number ? certification.block_number.toLocaleString() : '—'],
+                ['COST', certification.cost_eth ? `${certification.cost_eth} ETH` : '—'],
+              ].map(([label, value]) => (
+                <div key={label} className="p-2.5 bg-card">
+                  <p className="text-[8px] text-ghost tracking-widest mb-0.5">{label}</p>
+                  <p className="text-[11px] text-tx font-mono">{value}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Links */}
+            <div className="flex gap-2 pt-1">
+              <a
+                href={txUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[9px] text-accent/70 hover:text-accent border border-accent/20 px-2.5 py-1 transition-colors"
+              >
+                BaseScan ↗
+              </a>
+              <a
+                href={contractUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[9px] text-ghost hover:text-dim border border-faint px-2.5 py-1 transition-colors"
+              >
+                Contract ↗
+              </a>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
+
+      <div className="text-[10px] overflow-hidden whitespace-nowrap text-accent">
+        └{'─'.repeat(66)}
+      </div>
     </div>
   );
 }
 
-// ─── Not Certified Badge ────────────────────────────────────
+// ─── Uncertified ────────────────────────────────────────────
 
-function NotCertifiedBadge({ taskStatus }: { taskStatus: string }) {
+function UncertifiedBlock({ taskStatus }: { taskStatus: string }) {
   return (
-    <div className="border border-neutral-800 bg-neutral-900/50 px-4 py-3 flex items-center gap-2.5">
-      <span className="text-neutral-600 text-[14px]">⛓</span>
-      <span className="text-neutral-600 text-[12px] tracking-wider uppercase">
-        Not Certified
-      </span>
+    <div className="flex items-center gap-3 px-4 py-3 bg-card" style={{ borderLeft: '1px solid #22222244', borderRight: '1px solid #22222244' }}>
+      <span className="text-ghost text-[13px]">⛓</span>
+      <span className="text-[10px] text-ghost tracking-widest uppercase">NOT CERTIFIED</span>
       {taskStatus !== 'completed' && (
-        <span className="text-[10px] text-neutral-700 ml-2">
-          (Complete task to certify)
-        </span>
+        <span className="text-[9px] text-ghost/60">(complete task to certify)</span>
       )}
     </div>
   );
 }
 
-// ─── Certify Button ─────────────────────────────────────────
+// ─── Certify Action ─────────────────────────────────────────
 
-function CertifyButton({
+function CertifyAction({
   taskId,
   onCertified,
 }: {
   taskId: string;
   onCertified?: (data: CertificationData) => void;
 }) {
-  const [state, setState] = useState<'idle' | 'confirming' | 'certifying' | 'done' | 'error'>('idle');
-  const [error, setError] = useState<string>('');
-  const [result, setResult] = useState<any>(null);
+  const [state, setState] = useState<'idle' | 'confirm' | 'sending' | 'done' | 'error'>('idle');
+  const [error, setError] = useState('');
+  const [result, setResult] = useState<CertificationData | null>(null);
 
   const handleCertify = async () => {
-    setState('certifying');
+    setState('sending');
     setError('');
-
     try {
       const res = await fetch('/api/tasks/certify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ task_id: taskId }),
       });
-
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Certification failed');
-      }
-
+      if (!res.ok) throw new Error(data.error || 'Certification failed');
       setResult(data.certification);
       setState('done');
       onCertified?.(data.certification);
@@ -241,168 +204,149 @@ function CertifyButton({
   };
 
   if (state === 'done' && result) {
-    return <CertifiedBadge certification={result} />;
+    return <CertifiedBlock certification={result} />;
   }
 
   return (
-    <div className="border border-cyan-500/30 bg-cyan-500/[.04] px-4 py-3">
-      {state === 'idle' && (
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <span className="text-cyan-400 text-[14px]">⛓</span>
-            <span className="text-cyan-400 text-[12px] tracking-wider uppercase">
-              Ready to Certify
-            </span>
-          </div>
-          <button
-            onClick={() => setState('confirming')}
-            className="text-[11px] text-black bg-cyan-400 hover:bg-cyan-300 px-4 py-1.5 font-bold tracking-wider uppercase transition-colors cursor-pointer"
-          >
-            Certify On-Chain
-          </button>
-        </div>
-      )}
+    <div>
+      <div className="text-[10px] tracking-wide overflow-hidden whitespace-nowrap text-cyan">
+        ┌── <span className="text-dim">BLOCKCHAIN CERTIFICATION</span>{' '}{'─'.repeat(40)}
+      </div>
 
-      {state === 'confirming' && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2.5">
-            <span className="text-cyan-400 text-[14px]">⛓</span>
-            <span className="text-cyan-400 text-[12px] font-bold">Confirm Certification</span>
-          </div>
-          <p className="text-[11px] text-neutral-400 leading-relaxed">
-            This will write a Merkle root of all task receipts to <strong className="text-neutral-300">Base L2 mainnet</strong>.
-            The transaction is permanent and immutable. Gas cost: ~$0.001.
-          </p>
-          <div className="flex gap-2">
+      <div className="bg-card px-4 py-3" style={{ borderLeft: '1px solid #22d3ee44', borderRight: '1px solid #22d3ee44' }}>
+        {state === 'idle' && (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-cyan text-[13px]">⛓</span>
+              <span className="text-[10px] text-cyan tracking-widest uppercase font-bold">READY TO CERTIFY</span>
+            </div>
             <button
-              onClick={handleCertify}
-              className="text-[11px] text-black bg-cyan-400 hover:bg-cyan-300 px-4 py-1.5 font-bold tracking-wider uppercase transition-colors cursor-pointer"
+              onClick={() => setState('confirm')}
+              className="text-[10px] text-bg bg-cyan hover:bg-cyan/80 px-3.5 py-1.5 font-bold tracking-widest uppercase transition-colors cursor-pointer"
             >
-              Confirm & Certify
+              CERTIFY
             </button>
+          </div>
+        )}
+
+        {state === 'confirm' && (
+          <div className="space-y-2.5">
+            <p className="text-[10px] text-dim leading-relaxed">
+              This writes a Merkle root of all task receipts to <span className="text-tx">Base L2 mainnet</span>.
+              Permanent and immutable. Cost: ~$0.001.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={handleCertify}
+                className="text-[10px] text-bg bg-cyan hover:bg-cyan/80 px-3.5 py-1.5 font-bold tracking-widest uppercase transition-colors cursor-pointer"
+              >
+                CONFIRM
+              </button>
+              <button
+                onClick={() => setState('idle')}
+                className="text-[10px] text-ghost hover:text-dim border border-faint px-3.5 py-1.5 transition-colors cursor-pointer"
+              >
+                CANCEL
+              </button>
+            </div>
+          </div>
+        )}
+
+        {state === 'sending' && (
+          <div className="flex items-center gap-3">
+            <div className="w-3 h-3 border border-cyan border-t-transparent rounded-full animate-spin" />
+            <div>
+              <p className="text-[11px] text-cyan font-bold">Certifying on Base L2…</p>
+              <p className="text-[9px] text-ghost">Merkle tree → TX → confirmation (~10s)</p>
+            </div>
+          </div>
+        )}
+
+        {state === 'error' && (
+          <div className="space-y-2">
+            <p className="text-[10px] text-c-red">✗ {error}</p>
             <button
               onClick={() => setState('idle')}
-              className="text-[11px] text-neutral-500 hover:text-neutral-300 border border-neutral-700 px-4 py-1.5 transition-colors cursor-pointer"
+              className="text-[9px] text-ghost hover:text-dim border border-faint px-2.5 py-1 transition-colors cursor-pointer"
             >
-              Cancel
+              Try again
             </button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {state === 'certifying' && (
-        <div className="flex items-center gap-3">
-          <div className="w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
-          <div>
-            <p className="text-[12px] text-cyan-400 font-bold">Certifying on Base L2...</p>
-            <p className="text-[10px] text-neutral-500">Building Merkle tree → Sending TX → Waiting for confirmation</p>
-          </div>
-        </div>
-      )}
-
-      {state === 'error' && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2.5">
-            <span className="text-red-400 text-[14px]">✗</span>
-            <span className="text-red-400 text-[12px] font-bold">Certification Failed</span>
-          </div>
-          <p className="text-[11px] text-red-400/70">{error}</p>
-          <button
-            onClick={() => setState('idle')}
-            className="text-[11px] text-neutral-500 hover:text-neutral-300 border border-neutral-700 px-3 py-1 transition-colors cursor-pointer"
-          >
-            Try Again
-          </button>
-        </div>
-      )}
+      <div className="text-[10px] overflow-hidden whitespace-nowrap text-cyan">
+        └{'─'.repeat(66)}
+      </div>
     </div>
   );
 }
 
 // ─── Receipt Merkle Badge ───────────────────────────────────
-// Compact badge for individual receipts on /scan/[id] pages.
 
 export function ReceiptMerkleBadge({
   isAnchored,
   anchorTxHash,
   anchorBatchId,
   merkleProof,
-  contractAddress,
 }: {
   isAnchored: boolean;
   anchorTxHash?: string | null;
   anchorBatchId?: string | null;
   merkleProof?: MerkleProofData | null;
-  contractAddress?: string;
 }) {
   const [showProof, setShowProof] = useState(false);
 
   if (!isAnchored || !anchorTxHash) {
     return (
-      <div className="flex items-center gap-2 px-3 py-2 border border-neutral-800 bg-neutral-900/40">
-        <span className="text-neutral-700 text-[11px]">⛓</span>
-        <span className="text-neutral-700 text-[10px] tracking-wider uppercase">
-          Not anchored
-        </span>
+      <div className="flex items-center gap-2 px-3 py-2 bg-card border-l border-r border-faint">
+        <span className="text-ghost text-[11px]">⛓</span>
+        <span className="text-ghost text-[9px] tracking-widest uppercase">NOT ANCHORED</span>
       </div>
     );
   }
 
-  const txUrl = `${BASE_EXPLORER}/tx/${anchorTxHash}`;
+  const txUrl = `${EXPLORER}/tx/${anchorTxHash}`;
 
   return (
-    <div className="border border-emerald-500/20 bg-emerald-500/[.03]">
-      <div className="flex items-center justify-between px-3 py-2">
+    <div className="bg-card border-l border-r" style={{ borderColor: '#22c55e44' }}>
+      <div className="flex items-center justify-between px-3.5 py-2">
         <div className="flex items-center gap-2">
-          <span className="text-emerald-400 text-[11px]">⛓</span>
-          <span className="text-emerald-400 text-[10px] font-bold tracking-wider uppercase">
-            On-Chain
-          </span>
-          <span className="text-[9px] text-emerald-400/50 font-mono">
-            Batch #{anchorBatchId}
-          </span>
+          <span className="text-accent text-[11px]">⛓</span>
+          <span className="text-accent text-[9px] font-bold tracking-widest uppercase">ON-CHAIN</span>
+          <span className="text-[8px] text-ghost font-mono">Batch #{anchorBatchId}</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           {merkleProof && (
             <button
               onClick={() => setShowProof(!showProof)}
-              className="text-[9px] text-neutral-500 hover:text-neutral-300 cursor-pointer transition-colors"
+              className="text-[8px] text-ghost hover:text-dim cursor-pointer transition-colors"
             >
-              {showProof ? 'Hide' : 'Show'} proof
+              {showProof ? '▲ hide proof' : '▼ show proof'}
             </button>
           )}
-          <a
-            href={txUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[9px] text-emerald-400/70 hover:text-emerald-400 transition-colors"
-          >
+          <a href={txUrl} target="_blank" rel="noopener noreferrer"
+            className="text-[8px] text-accent/60 hover:text-accent transition-colors">
             BaseScan ↗
           </a>
         </div>
       </div>
 
       {showProof && merkleProof && (
-        <div className="px-3 pb-3 pt-1 border-t border-emerald-500/10 space-y-2">
+        <div className="px-3.5 pb-3 pt-1 border-t border-faint space-y-2">
           <div>
-            <p className="text-[8px] text-neutral-600 tracking-widest mb-0.5">LEAF HASH</p>
-            <p className="text-[9px] text-neutral-400 font-mono break-all">{merkleProof.leaf}</p>
+            <p className="text-[8px] text-ghost tracking-widest mb-0.5">LEAF</p>
+            <p className="text-[9px] text-dim font-mono break-all">{merkleProof.leaf}</p>
           </div>
           <div>
-            <p className="text-[8px] text-neutral-600 tracking-widest mb-0.5">LEAF INDEX</p>
-            <p className="text-[10px] text-neutral-400 font-mono">{merkleProof.index}</p>
+            <p className="text-[8px] text-ghost tracking-widest mb-0.5">INDEX</p>
+            <p className="text-[10px] text-dim font-mono">{merkleProof.index}</p>
           </div>
           <div>
-            <p className="text-[8px] text-neutral-600 tracking-widest mb-0.5">
-              PROOF ({merkleProof.proof.length} elements)
-            </p>
-            <div className="space-y-0.5">
-              {merkleProof.proof.map((p, i) => (
-                <p key={i} className="text-[9px] text-neutral-500 font-mono break-all">
-                  [{i}] {p}
-                </p>
-              ))}
-            </div>
+            <p className="text-[8px] text-ghost tracking-widest mb-0.5">PROOF ({merkleProof.proof.length} nodes)</p>
+            {merkleProof.proof.map((p, i) => (
+              <p key={i} className="text-[8px] text-ghost font-mono break-all">[{i}] {p}</p>
+            ))}
           </div>
         </div>
       )}
@@ -410,88 +354,96 @@ export function ReceiptMerkleBadge({
   );
 }
 
-// ─── 3-Level Verification Summary ───────────────────────────
-// Shows the full verification stack on task and scan pages.
+// ─── 3-Level Verification Stack ─────────────────────────────
 
 export function VerificationStack({
-  ed25519Valid,
-  e2eValid,
-  onChainValid,
-  txHash,
+  ed25519: { total, verified, failed, done },
+  e2e,
+  onChain,
 }: {
-  ed25519Valid: boolean;
-  e2eValid?: boolean | null;     // null if no E2E on this receipt
-  onChainValid?: boolean | null; // null if not anchored
-  txHash?: string | null;
+  ed25519: { total: number; verified: number; failed: number; done: boolean };
+  e2e?: { valid: boolean | null; decrypted: number } | null;
+  onChain?: { certified: boolean; txHash?: string | null; batchId?: number } | null;
 }) {
-  const levels = [
-    {
-      name: 'Ed25519 Signature',
-      desc: 'Agent cryptographically signed this receipt',
-      valid: ed25519Valid,
-      icon: '🔏',
-    },
-    {
-      name: 'E2E Encryption',
-      desc: 'Data is authentic (AES-256-GCM verified)',
-      valid: e2eValid,
-      icon: '🔐',
-      optional: true,
-    },
-    {
-      name: 'On-Chain Proof',
-      desc: 'Merkle proof verified on Base L2',
-      valid: onChainValid,
-      icon: '⛓',
-      optional: true,
-      link: txHash ? `${BASE_EXPLORER}/tx/${txHash}` : undefined,
-    },
-  ];
+  const sigOk = done && failed === 0 && total > 0;
+  const sigFail = failed > 0;
 
   return (
-    <div className="border border-neutral-800 divide-y divide-neutral-800">
-      <div className="px-4 py-2.5 bg-neutral-900/60">
-        <p className="text-[10px] text-neutral-500 tracking-widest uppercase font-bold">
-          3-Level Verification
-        </p>
+    <div>
+      <div className="text-[10px] tracking-wide overflow-hidden whitespace-nowrap text-ghost">
+        ┌── <span className="text-dim">3-LEVEL VERIFICATION</span>{' '}{'─'.repeat(44)}
       </div>
-      {levels.map((level) => {
-        if (level.optional && level.valid === null) return null;
 
-        return (
-          <div
-            key={level.name}
-            className="px-4 py-2.5 flex items-center justify-between"
-          >
+      <div className="bg-card divide-y divide-faint" style={{ borderLeft: '1px solid #22222244', borderRight: '1px solid #22222244' }}>
+        {/* Level 1: Ed25519 */}
+        <div className="flex items-center justify-between px-4 py-2.5">
+          <div className="flex items-center gap-2.5">
+            <span className="text-[12px]">🔏</span>
+            <div>
+              <p className="text-[10px] text-tx">Ed25519 Signatures</p>
+              <p className="text-[8px] text-ghost">Agent cryptographically signed each receipt</p>
+            </div>
+          </div>
+          <span className={`text-[10px] font-bold ${
+            !done ? 'text-dim' : sigOk ? 'text-accent' : 'text-c-red'
+          }`}>
+            {!done
+              ? `${verified + failed}/${total}…`
+              : sigOk
+                ? `✓ ${verified}/${total}`
+                : `✗ ${failed} FAILED`
+            }
+          </span>
+        </div>
+
+        {/* Level 2: E2E (if applicable) */}
+        {e2e && e2e.valid !== null && (
+          <div className="flex items-center justify-between px-4 py-2.5">
             <div className="flex items-center gap-2.5">
-              <span className="text-[13px]">{level.icon}</span>
+              <span className="text-[12px]">🔐</span>
               <div>
-                <p className="text-[11px] text-neutral-300">{level.name}</p>
-                <p className="text-[9px] text-neutral-600">{level.desc}</p>
+                <p className="text-[10px] text-tx">AES-256-GCM Encryption</p>
+                <p className="text-[8px] text-ghost">Data decrypted and hash-verified client-side</p>
               </div>
             </div>
+            <span className={`text-[10px] font-bold ${e2e.valid ? 'text-accent' : 'text-c-red'}`}>
+              {e2e.valid ? `✓ ${e2e.decrypted} decrypted` : '✗ MISMATCH'}
+            </span>
+          </div>
+        )}
+
+        {/* Level 3: On-Chain */}
+        <div className="flex items-center justify-between px-4 py-2.5">
+          <div className="flex items-center gap-2.5">
+            <span className="text-[12px]">⛓</span>
+            <div>
+              <p className="text-[10px] text-tx">Merkle Proof on Base L2</p>
+              <p className="text-[8px] text-ghost">Immutable — even OpenClawScan cannot alter</p>
+            </div>
+          </div>
+          {onChain?.certified ? (
             <div className="flex items-center gap-2">
-              <span
-                className={`text-[11px] font-bold ${
-                  level.valid ? 'text-emerald-400' : 'text-red-400'
-                }`}
-              >
-                {level.valid ? '✓ PASS' : '✗ FAIL'}
-              </span>
-              {level.link && (
+              <span className="text-[10px] font-bold text-accent">✓ ON-CHAIN</span>
+              {onChain.txHash && (
                 <a
-                  href={level.link}
+                  href={`${EXPLORER}/tx/${onChain.txHash}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[9px] text-emerald-400/60 hover:text-emerald-400 transition-colors"
+                  className="text-[8px] text-accent/50 hover:text-accent transition-colors"
                 >
                   ↗
                 </a>
               )}
             </div>
-          </div>
-        );
-      })}
+          ) : (
+            <span className="text-[10px] text-ghost">— not certified</span>
+          )}
+        </div>
+      </div>
+
+      <div className="text-[10px] overflow-hidden whitespace-nowrap text-ghost">
+        └{'─'.repeat(66)}
+      </div>
     </div>
   );
 }

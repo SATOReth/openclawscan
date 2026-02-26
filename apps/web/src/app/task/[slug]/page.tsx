@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { TBox, Stat, StatusBadge, BackBtn, Skeleton, Empty } from '@/components/ui';
+import { TaskCertificationBadge, VerificationStack } from '@/components/chain-badge';
 import nacl from 'tweetnacl';
 import { decodeBase64 } from 'tweetnacl-util';
 import {
@@ -129,11 +130,15 @@ export default function TaskPage() {
 
   // v1.1: E2E decryption state
   const [viewingKey, setViewingKey] = useState<string | null>(null);
-  const [keyValid, setKeyValid] = useState<boolean | null>(null); // null = not checked
+  const [keyValid, setKeyValid] = useState<boolean | null>(null);
   const [decryptedMap, setDecryptedMap] = useState<Map<string, DecryptedContent>>(new Map());
   const [decryptedSummary, setDecryptedSummary] = useState<string | null>(null);
   const [expandedReceipt, setExpandedReceipt] = useState<string | null>(null);
   const [decryptionDone, setDecryptionDone] = useState(false);
+
+  // Phase 2: On-chain certification state
+  const [certification, setCertification] = useState<any>(null);
+  const [isOwner, setIsOwner] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -156,6 +161,18 @@ export default function TaskPage() {
         setTask(taskData);
         setReceipts(rcpts);
         setLoading(false);
+
+        // ── Fetch certification data (Phase 2) ──
+        try {
+          const certRes = await fetch(`/api/tasks?slug=${slug}`);
+          if (certRes.ok) {
+            const certData = await certRes.json();
+            if (certData.certification) setCertification(certData.certification);
+            if (certData.task?.is_owner) setIsOwner(true);
+          }
+        } catch (e) {
+          console.error('[OCS] Certification fetch error', e);
+        }
 
         // ── Ed25519 signature verification ──
         if (rcpts.length > 0) {
@@ -193,7 +210,6 @@ export default function TaskPage() {
           setKeyValid(isValid);
 
           if (isValid) {
-            // Decrypt all receipts
             const dMap = new Map<string, DecryptedContent>();
             for (const r of rcpts) {
               const content: DecryptedContent = { input: null, output: null };
@@ -211,7 +227,6 @@ export default function TaskPage() {
             }
             setDecryptedMap(dMap);
 
-            // Decrypt task summary
             if (taskData.encrypted_summary) {
               try {
                 const summary = await decryptReceiptField(taskData.encrypted_summary, key);
@@ -243,7 +258,7 @@ export default function TaskPage() {
     return null;
   }
 
-  // v1.1: Check if this is an encrypted task
+  // v1.1: Encryption detection
   const isEncryptedTask = task?.key_hash !== null && task?.key_hash !== undefined;
   const hasEncryptedReceipts = receipts.some(r => r.encrypted_input || r.encrypted_output);
 
@@ -259,6 +274,7 @@ export default function TaskPage() {
   const allDone = verification.done;
   const allValid = allDone && verification.failed === 0 && verification.total > 0;
   const hasFailures = verification.failed > 0;
+  const isCertified = !!certification;
 
   return (
     <div>
@@ -278,6 +294,12 @@ export default function TaskPage() {
                   : 'text-amber-400 border-amber-400/30 bg-amber-400/5'
               }`}>
                 {keyValid ? '🔓 E2E DECRYPTED' : '🔒 ENCRYPTED'}
+              </span>
+            )}
+            {/* Phase 2: On-chain badge (compact, header) */}
+            {isCertified && (
+              <span className="text-[9px] px-1.5 py-0.5 border text-accent border-accent/30 bg-accent/5">
+                ⛓ ON-CHAIN
               </span>
             )}
             <button
@@ -303,6 +325,18 @@ export default function TaskPage() {
           <Stat label="COST" value={formatCost(task.total_cost_usd)} />
           <Stat label="TOKENS" value={formatTokens(task.total_tokens)} />
         </div>
+      </div>
+
+      {/* ── Phase 2: On-chain Certification Badge ── */}
+      <div className="mb-4">
+        <TaskCertificationBadge
+          isCertified={isCertified}
+          certification={certification}
+          isOwner={isOwner}
+          taskId={task.task_id}
+          taskStatus={task.status}
+          onCertified={(data) => setCertification(data)}
+        />
       </div>
 
       {/* v1.1: Decrypted summary */}
@@ -433,64 +467,46 @@ export default function TaskPage() {
         </TBox>
       )}
 
-      {/* ── Verification status bar ── */}
+      {/* ── Phase 2: 3-Level Verification Stack ── */}
+      <div className="mb-2">
+        <VerificationStack
+          ed25519={verification}
+          e2e={hasEncryptedReceipts && decryptionDone ? {
+            valid: keyValid,
+            decrypted: decryptedMap.size,
+          } : null}
+          onChain={isCertified ? {
+            certified: true,
+            txHash: certification?.tx_hash,
+            batchId: certification?.batch_id_onchain,
+          } : {
+            certified: false,
+          }}
+        />
+      </div>
+
+      {/* ── Sequence integrity bar ── */}
       <div
-        className="flex items-center gap-2 px-3.5 py-3 border transition-all mb-2"
+        className="flex items-center gap-2 px-3.5 py-3 border transition-all mb-6"
         style={{
-          borderColor: allValid ? '#22c55e33' : hasFailures ? '#ef444433' : '#22222233',
-          background: allValid ? '#22c55e06' : hasFailures ? '#ef444406' : 'transparent',
+          borderColor: !gaps ? '#22c55e22' : '#ef444422',
+          background: !gaps ? '#22c55e04' : '#ef444404',
         }}
       >
         <span
-          className="w-1.5 h-1.5 transition-all"
+          className="w-1.5 h-1.5"
           style={{
-            background: allValid ? '#22c55e' : hasFailures ? '#ef4444' : '#333',
-            boxShadow: allValid ? '0 0 6px #22c55e55' : hasFailures ? '0 0 6px #ef444455' : 'none',
+            background: !gaps ? '#22c55e' : '#ef4444',
+            boxShadow: !gaps ? '0 0 6px #22c55e55' : '0 0 6px #ef444455',
           }}
         />
-        <span className={`text-[11px] transition-colors ${
-          allValid ? 'text-accent' : hasFailures ? 'text-red-400' : 'text-dim'
-        }`}>
-          {!allDone
-            ? `verifying signatures… ${verification.verified + verification.failed}/${verification.total}`
-            : hasFailures
-              ? `⚠ ${verification.failed}/${verification.total} signatures FAILED — receipts may have been tampered with`
-              : gaps
-                ? `⚠ ${gaps} · ${verification.verified}/${verification.total} signatures valid (Ed25519)`
-                : `seq #0→#${receipts.length - 1} · no gaps · ${verification.verified}/${verification.total} signatures valid (Ed25519, client-verified)`
+        <span className={`text-[10px] ${!gaps ? 'text-accent/80' : 'text-c-red/80'}`}>
+          {!gaps
+            ? `seq #0→#${receipts.length - 1} · no gaps · tamper-evident chain intact`
+            : `⚠ ${gaps}`
           }
         </span>
       </div>
-
-      {/* v1.1: E2E encryption status bar */}
-      {hasEncryptedReceipts && decryptionDone && (
-        <div
-          className="flex items-center gap-2 px-3.5 py-3 border transition-all mb-6"
-          style={{
-            borderColor: keyValid ? '#22c55e33' : '#f59e0b33',
-            background: keyValid ? '#22c55e06' : '#f59e0b06',
-          }}
-        >
-          <span
-            className="w-1.5 h-1.5"
-            style={{
-              background: keyValid ? '#22c55e' : '#f59e0b',
-              boxShadow: keyValid ? '0 0 6px #22c55e55' : '0 0 6px #f59e0b55',
-            }}
-          />
-          <span className={`text-[11px] ${keyValid ? 'text-accent' : 'text-amber-400'}`}>
-            {keyValid
-              ? `AES-256-GCM · ${decryptedMap.size} receipts decrypted · all hashes verified · zero plaintext on server`
-              : viewingKey
-                ? 'AES-256-GCM · wrong viewing key — content cannot be decrypted'
-                : 'AES-256-GCM · encrypted content available — add #key=VIEWING_KEY to URL'
-            }
-          </span>
-        </div>
-      )}
-
-      {/* Spacer if no E2E bar */}
-      {!hasEncryptedReceipts && <div className="mb-6" />}
     </div>
   );
 }
