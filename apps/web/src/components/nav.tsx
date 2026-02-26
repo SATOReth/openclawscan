@@ -51,7 +51,7 @@ export function Nav() {
           {link('/dashboard/tasks', 'tasks')}
           {link('/dashboard/agents', 'agents')}
           <span className="text-faint">│</span>
-          {link('/#pricing', 'pricing')}
+          {link('/#open-standard', 'open standard')}
           {link('/docs', 'docs')}
           {user ? (
             <button
@@ -84,7 +84,7 @@ export function Nav() {
           {link('/dashboard/tasks', 'tasks')}
           {link('/dashboard/agents', 'agents')}
           <div className="h-px bg-faint" />
-          {link('/#pricing', 'pricing')}
+          {link('/#open-standard', 'open standard')}
           {link('/docs', 'docs')}
           {user ? (
             <button

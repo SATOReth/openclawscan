@@ -308,7 +308,7 @@ export default function Home() {
       </div>
 
       {/* ── Open Standard ── */}
-      <div id="pricing">
+      <div id="open-standard">
         <TBox title="OPEN STANDARD" color="#22c55e">
           <div className="text-center py-6">
             <p className="text-[28px] font-bold text-bright mb-2">An open protocol for verifiable AI.</p>
