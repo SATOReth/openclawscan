@@ -18,17 +18,17 @@ export default function Home() {
         <div className="pt-16 pb-10">
           <pre className="text-[clamp(5px,1.2vw,9px)] leading-tight text-accent tracking-wide">{LOGO_ART}</pre>
           <div className="flex items-center gap-2 mt-2.5 mb-8">
-            <span className="text-[10px] text-dim">OpenClawScan</span>
-            <span className="text-[9px] text-ghost">v1.2.0</span>
-            <span className="text-[9px] text-accent border border-accent/20 px-1.5 bg-accent/[.04]">MIT</span>
-            <span className="text-[9px] text-c-blue border border-c-blue/20 px-1.5 bg-c-blue/[.04]">⛓ Base L2</span>
+            <span className="text-[11px] text-dim">OpenClawScan</span>
+            <span className="text-[10px] text-ghost">v1.2.0</span>
+            <span className="text-[10px] text-accent border border-accent/20 px-1.5 bg-accent/[.04]">MIT</span>
+            <span className="text-[10px] text-c-blue border border-c-blue/20 px-1.5 bg-c-blue/[.04]">⛓ Base L2</span>
           </div>
 
           <h1 className="text-[clamp(24px,3.5vw,42px)] font-bold leading-tight text-bright tracking-tighter mb-4">
             Proof of Task<br />for AI agents<span className="text-accent cursor-inline">_</span>
           </h1>
 
-          <p className="text-[clamp(12px,1.1vw,14px)] leading-relaxed text-dim max-w-[500px] mb-6">
+          <p className="text-[clamp(13px,1.2vw,15px)] leading-relaxed text-dim max-w-[500px] mb-6">
             Cryptographic proof that your AI agent executed a task —
             signed with <span className="text-tx">Ed25519</span>,
             encrypted with <span className="text-tx">AES-256-GCM</span>,
@@ -39,21 +39,21 @@ export default function Home() {
           <CopyInstall command="npm install @openclawscan/sdk" />
 
           <div className="flex gap-1.5 mb-8">
-            <Link href="/dashboard" className="px-5 py-2.5 bg-accent text-black text-[12px] font-bold border-none">
+            <Link href="/dashboard" className="px-5 py-2.5 bg-accent text-black text-[13px] font-bold border-none">
               DASHBOARD →
             </Link>
-            <a href="https://github.com/SATOReth/openclawscan" target="_blank" rel="noopener noreferrer" className="px-5 py-2.5 bg-transparent text-dim text-[12px] border border-faint hover:border-ghost transition-colors">
+            <a href="https://github.com/SATOReth/openclawscan" target="_blank" rel="noopener noreferrer" className="px-5 py-2.5 bg-transparent text-dim text-[13px] border border-faint hover:border-ghost transition-colors">
               GITHUB
             </a>
-            <Link href="/docs" className="px-5 py-2.5 bg-transparent text-dim text-[12px] border border-faint hover:border-ghost transition-colors">
+            <Link href="/docs" className="px-5 py-2.5 bg-transparent text-dim text-[13px] border border-faint hover:border-ghost transition-colors">
               DOCS
             </Link>
           </div>
 
-          <div className="flex gap-6 text-[10px] text-ghost">
-            <span><span className="text-tx font-bold text-sm">Ed25519</span> signed</span>
-            <span><span className="text-tx font-bold text-sm">AES-256</span> encrypted</span>
-            <span><span className="text-tx font-bold text-sm">Base L2</span> anchored</span>
+          <div className="flex gap-6 text-[11px] text-ghost">
+            <span><span className="text-tx font-bold text-[14px]">Ed25519</span> signed</span>
+            <span><span className="text-tx font-bold text-[14px]">AES-256</span> encrypted</span>
+            <span><span className="text-tx font-bold text-[14px]">Base L2</span> anchored</span>
           </div>
         </div>
 
@@ -65,14 +65,14 @@ export default function Home() {
       {/* ── Proof of Task ── */}
       <div className="border border-accent/20 bg-accent/[.03] p-6 mb-4">
         <div className="flex items-center gap-2 mb-3">
-          <span className="text-[10px] text-accent tracking-widest">◈◈◈</span>
-          <span className="text-[11px] text-accent tracking-widest font-bold">PROOF OF TASK (PoT)</span>
+          <span className="text-[11px] text-accent tracking-widest">◈◈◈</span>
+          <span className="text-[12px] text-accent tracking-widest font-bold">PROOF OF TASK (PoT)</span>
         </div>
-        <p className="text-[clamp(14px,1.4vw,18px)] font-bold text-bright leading-snug mb-3 max-w-[700px]">
+        <p className="text-[clamp(15px,1.4vw,19px)] font-bold text-bright leading-snug mb-3 max-w-[700px]">
           Cryptographic attestation that an AI agent executed a specific task — 
           verified at three independent levels, anchored immutably on-chain.
         </p>
-        <p className="text-[12px] text-dim leading-relaxed max-w-[600px]">
+        <p className="text-[13px] text-dim leading-relaxed max-w-[600px]">
           Not a consensus mechanism. Not observability. Proof of Task is a new 
           verification primitive for the AI agent economy — client-facing proof
           that work was done, how it was done, and that nobody can alter the record.
@@ -84,45 +84,45 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-faint">
           <div className="p-5 bg-card">
             <div className="flex items-center gap-2 mb-3">
-              <span className="text-[20px] text-accent">①</span>
-              <span className="text-[9px] text-accent tracking-widest font-bold">SIGNATURE</span>
+              <span className="text-[22px] text-accent">①</span>
+              <span className="text-[10px] text-accent tracking-widest font-bold">SIGNATURE</span>
             </div>
-            <p className="text-[15px] font-bold text-bright mb-2">Ed25519</p>
-            <p className="text-[12px] text-dim leading-relaxed mb-3">
-              Every receipt is digitally signed by the agent's private key.
+            <p className="text-[16px] font-bold text-bright mb-2">Ed25519</p>
+            <p className="text-[13px] text-dim leading-relaxed mb-3">
+              Every receipt is digitally signed by the agent&apos;s private key.
               Same cryptography as SSH and Signal. Tamper one byte — signature invalid.
             </p>
-            <div className="text-[10px] text-ghost border border-faint px-2.5 py-1.5 bg-bg inline-block">
+            <div className="text-[11px] text-ghost border border-faint px-2.5 py-1.5 bg-bg inline-block">
               proves: <span className="text-accent">agent signed it</span>
             </div>
           </div>
 
           <div className="p-5 bg-card">
             <div className="flex items-center gap-2 mb-3">
-              <span className="text-[20px] text-c-blue">②</span>
-              <span className="text-[9px] text-c-blue tracking-widest font-bold">ENCRYPTION</span>
+              <span className="text-[22px] text-c-blue">②</span>
+              <span className="text-[10px] text-c-blue tracking-widest font-bold">ENCRYPTION</span>
             </div>
-            <p className="text-[15px] font-bold text-bright mb-2">AES-256-GCM</p>
-            <p className="text-[12px] text-dim leading-relaxed mb-3">
+            <p className="text-[16px] font-bold text-bright mb-2">AES-256-GCM</p>
+            <p className="text-[13px] text-dim leading-relaxed mb-3">
               Input/output hashed then encrypted end-to-end. Server stores only blobs.
               Viewing key in URL fragment — zero plaintext on server. Ever.
             </p>
-            <div className="text-[10px] text-ghost border border-faint px-2.5 py-1.5 bg-bg inline-block">
+            <div className="text-[11px] text-ghost border border-faint px-2.5 py-1.5 bg-bg inline-block">
               proves: <span className="text-c-blue">data is authentic</span>
             </div>
           </div>
 
           <div className="p-5 bg-card">
             <div className="flex items-center gap-2 mb-3">
-              <span className="text-[20px] text-purple">③</span>
-              <span className="text-[9px] text-purple tracking-widest font-bold">BLOCKCHAIN</span>
+              <span className="text-[22px] text-purple">③</span>
+              <span className="text-[10px] text-purple tracking-widest font-bold">BLOCKCHAIN</span>
             </div>
-            <p className="text-[15px] font-bold text-bright mb-2">Merkle on Base L2</p>
-            <p className="text-[12px] text-dim leading-relaxed mb-3">
+            <p className="text-[16px] font-bold text-bright mb-2">Merkle on Base L2</p>
+            <p className="text-[13px] text-dim leading-relaxed mb-3">
               Receipt hashes form a Merkle tree. Root anchored on Base L2 via ClawVerify.sol.
               Immutable — even OpenClawScan cannot alter certified records.
             </p>
-            <div className="text-[10px] text-ghost border border-faint px-2.5 py-1.5 bg-bg inline-block">
+            <div className="text-[11px] text-ghost border border-faint px-2.5 py-1.5 bg-bg inline-block">
               proves: <span className="text-purple">record is permanent</span>
             </div>
           </div>
@@ -150,10 +150,10 @@ export default function Home() {
           ].map(([px, col, title, desc]) => (
             <div key={title} className="p-4 bg-card">
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-[10px] tracking-widest" style={{ color: col as string }}>{px}</span>
-                <span className="text-[13px] font-bold text-bright">{title}</span>
+                <span className="text-[11px] tracking-widest" style={{ color: col as string }}>{px}</span>
+                <span className="text-[14px] font-bold text-bright">{title}</span>
               </div>
-              <p className="text-[12px] text-dim leading-relaxed">{desc}</p>
+              <p className="text-[13px] text-dim leading-relaxed">{desc}</p>
             </div>
           ))}
         </div>
@@ -170,11 +170,11 @@ export default function Home() {
           ].map((s, i) => (
             <div key={s.n} className={`py-4 ${i < 3 ? 'border-b border-faint' : ''}`}>
               <div className="flex gap-2.5 items-center mb-1.5">
-                <span className="text-[11px] text-accent font-bold">{s.n}</span>
-                <span className="text-[15px] font-bold text-bright">{s.t}</span>
+                <span className="text-[12px] text-accent font-bold">{s.n}</span>
+                <span className="text-[16px] font-bold text-bright">{s.t}</span>
               </div>
               <p className="text-[13px] text-dim leading-relaxed mb-2">{s.desc}</p>
-              <code className="text-[11px] text-ghost bg-bg px-2.5 py-1.5 inline-block border border-faint overflow-auto max-w-full">{s.cmd}</code>
+              <code className="text-[12px] text-ghost bg-bg px-2.5 py-1.5 inline-block border border-faint overflow-auto max-w-full">{s.cmd}</code>
             </div>
           ))}
         </TBox>
@@ -187,7 +187,7 @@ export default function Home() {
               be independently verified against the on-chain root.
             </p>
             <div className="border border-faint bg-bg p-3 mb-4">
-              <pre className="text-[10px] leading-[1.8] text-dim overflow-auto">{
+              <pre className="text-[11px] leading-[1.8] text-dim overflow-auto">{
 `┌──────────── ClawVerify.sol ─────────────┐
 │                                          │
 │  certifyBatch(root, agent, slug, count)  │
@@ -209,13 +209,13 @@ export default function Home() {
               ['Cost', '~$0.001 per batch', null],
             ].map(([k, v, url], i) => (
               <div key={k as string} className={`flex justify-between py-2 ${i < 3 ? 'border-b border-faint' : ''}`}>
-                <span className="text-[12px] text-ghost">{k}</span>
+                <span className="text-[13px] text-ghost">{k}</span>
                 {url ? (
-                  <a href={url as string} target="_blank" rel="noopener noreferrer" className="text-[12px] text-c-blue hover:text-bright transition-colors">
+                  <a href={url as string} target="_blank" rel="noopener noreferrer" className="text-[13px] text-c-blue hover:text-bright transition-colors">
                     {v} ↗
                   </a>
                 ) : (
-                  <span className="text-[12px] text-tx">{v}</span>
+                  <span className="text-[13px] text-tx">{v}</span>
                 )}
               </div>
             ))}
@@ -226,7 +226,7 @@ export default function Home() {
       {/* ── Receipt anatomy + Security ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <TBox title="RECEIPT FORMAT" color="#eab308">
-          <pre className="text-[clamp(9px,0.9vw,11px)] leading-[1.9] text-dim overflow-auto">{
+          <pre className="text-[clamp(10px,1vw,12px)] leading-[1.9] text-dim overflow-auto">{
 `┌──────────── HEADER ──────────────────┐
 │ receipt_id   rcpt_wyuc8de1qj93       │
 │ agent_id     sentinel-007            │
@@ -272,10 +272,10 @@ export default function Home() {
           ].map(([color, title, desc], i) => (
             <div key={title} className={`py-3 ${i < 5 ? 'border-b border-faint' : ''}`}>
               <div className="flex gap-2 items-center mb-1">
-                <span className="text-[8px]" style={{ color: color as string }}>██</span>
-                <span className="text-[13px] font-semibold text-bright">{title}</span>
+                <span className="text-[9px]" style={{ color: color as string }}>██</span>
+                <span className="text-[14px] font-semibold text-bright">{title}</span>
               </div>
-              <p className="text-[12px] text-dim leading-relaxed pl-5">{desc}</p>
+              <p className="text-[13px] text-dim leading-relaxed pl-5">{desc}</p>
             </div>
           ))}
         </TBox>
@@ -286,8 +286,8 @@ export default function Home() {
         <TBox title="COMPATIBLE WITH" color="#666">
           {['OpenClaw', 'LangChain', 'AutoGen', 'Custom agents'].map((name, i) => (
             <div key={name} className={`py-3 flex justify-between ${i < 3 ? 'border-b border-faint' : ''}`}>
-              <span className="text-[13px] font-semibold text-bright">{name}</span>
-              <span className="text-[12px] text-dim">{i === 0 ? 'Native' : i === 3 ? 'Node.js SDK' : 'Coming soon'}</span>
+              <span className="text-[14px] font-semibold text-bright">{name}</span>
+              <span className="text-[13px] text-dim">{i === 0 ? 'Native' : i === 3 ? 'Node.js SDK' : 'Coming soon'}</span>
             </div>
           ))}
         </TBox>
@@ -300,46 +300,27 @@ export default function Home() {
             ['Dispute resolution', 'Immutable on-chain record settles disagreements.'],
           ].map(([title, desc], i) => (
             <div key={title} className={`py-3 ${i < 3 ? 'border-b border-faint' : ''}`}>
-              <p className="text-[13px] font-semibold text-bright mb-1">{title}</p>
-              <p className="text-[12px] text-dim leading-relaxed">{desc}</p>
+              <p className="text-[14px] font-semibold text-bright mb-1">{title}</p>
+              <p className="text-[13px] text-dim leading-relaxed">{desc}</p>
             </div>
           ))}
         </TBox>
       </div>
 
-      {/* ── Free forever ── */}
+      {/* ── Open Standard ── */}
       <div id="pricing">
-        <TBox title="PRICING" color="#22c55e">
+        <TBox title="OPEN STANDARD" color="#22c55e">
           <div className="text-center py-6">
-            <p className="text-[28px] font-bold text-bright mb-1">Free. Forever.</p>
-            <p className="text-[13px] text-dim mb-6 max-w-[500px] mx-auto leading-relaxed">
-              Unlimited agents. Unlimited receipts. Full API access. E2E encryption.
-              On-chain certification. No tiers, no paywalls. Standards should be free.
+            <p className="text-[28px] font-bold text-bright mb-2">An open protocol for verifiable AI.</p>
+            <p className="text-[14px] text-dim mb-6 max-w-[520px] mx-auto leading-relaxed">
+              OpenClawScan is MIT-licensed infrastructure. Proof of Task works as a standard
+              when everyone can adopt it — so there are no tiers, no limits, and no paywalls.
             </p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-faint max-w-[600px] mx-auto mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-faint max-w-[600px] mx-auto mb-4">
               <Stat label="AGENTS" value="∞" color="#22c55e" />
               <Stat label="RECEIPTS" value="∞" color="#22c55e" />
-              <Stat label="ENCRYPTION" value="E2E" color="#22c55e" />
-              <Stat label="COST" value="$0" color="#22c55e" />
-            </div>
-            <div className="border border-faint p-4 max-w-[480px] mx-auto text-left bg-card">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-[8px] text-purple">██</span>
-                <span className="text-[12px] font-bold text-bright">Support the project</span>
-              </div>
-              <p className="text-[12px] text-dim leading-relaxed mb-3">
-                OpenClawScan is funded by the community. A support token lives on
-                Base L2 — no utility, no promises. Just a way to back the protocol
-                if you believe in verifiable AI.
-              </p>
-              <a
-                href="https://basescan.org/token/OCS_TOKEN_ADDRESS"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block text-[13px] font-bold text-accent border border-accent/30 px-3 py-1.5 bg-accent/[.05] hover:bg-accent/[.1] transition-colors"
-              >
-                $OCS on Base →
-              </a>
+              <Stat label="API" value="Full" color="#22c55e" />
+              <Stat label="LICENSE" value="MIT" color="#22c55e" />
             </div>
           </div>
         </TBox>
@@ -357,8 +338,8 @@ export default function Home() {
             ['What agents work?', 'OpenClaw natively. Any Node.js app via SDK. LangChain + AutoGen adapters planned.'],
           ].map(([q, a], i) => (
             <div key={q} className={`py-3 ${i < 5 ? 'border-b border-faint' : ''}`}>
-              <p className="text-[13px] font-bold text-bright mb-1"><span className="text-ghost">?</span> {q}</p>
-              <p className="text-[12px] text-dim leading-relaxed pl-4">{a}</p>
+              <p className="text-[14px] font-bold text-bright mb-1"><span className="text-ghost">?</span> {q}</p>
+              <p className="text-[13px] text-dim leading-relaxed pl-4">{a}</p>
             </div>
           ))}
         </TBox>
@@ -372,8 +353,8 @@ export default function Home() {
               ['Frontend', 'Next.js 14 + React 18'], ['License', 'MIT'],
             ].map(([k, v], i) => (
               <div key={k} className={`flex justify-between py-2.5 ${i < 7 ? 'border-b border-faint' : ''}`}>
-                <span className="text-[12px] text-ghost">{k}</span>
-                <span className="text-[12px] text-tx">{v}</span>
+                <span className="text-[13px] text-ghost">{k}</span>
+                <span className="text-[13px] text-tx">{v}</span>
               </div>
             ))}
           </TBox>
@@ -386,10 +367,10 @@ export default function Home() {
               ['#eab308', 'v1.3', 'NEXT', 'Marketplace API, reputation scores'],
             ].map(([col, ver, when, desc], i) => (
               <div key={ver} className={`flex gap-2.5 py-2.5 items-center ${i < 3 ? 'border-b border-faint' : ''}`}>
-                <span className="text-[8px]" style={{ color: col as string }}>██</span>
-                <span className="text-[12px] font-bold text-bright min-w-[32px]">{ver}</span>
-                <span className="text-[10px] min-w-[52px]" style={{ color: col as string }}>{when}</span>
-                <span className="text-[12px] text-dim">{desc}</span>
+                <span className="text-[9px]" style={{ color: col as string }}>██</span>
+                <span className="text-[13px] font-bold text-bright min-w-[32px]">{ver}</span>
+                <span className="text-[11px] min-w-[52px]" style={{ color: col as string }}>{when}</span>
+                <span className="text-[13px] text-dim">{desc}</span>
               </div>
             ))}
           </TBox>
@@ -398,19 +379,18 @@ export default function Home() {
 
       {/* ── CTA ── */}
       <div className="border border-accent/20 bg-accent/[.03] p-8 text-center mb-4">
-        <p className="text-[15px] font-bold text-bright mb-2">Make your agent verifiable.</p>
-        <p className="text-[13px] text-dim mb-1">Proof of Task — 3-level verification for AI agents.</p>
-        <p className="text-[13px] text-dim mb-4">5 minutes to set up. Free forever. On-chain.</p>
+        <p className="text-[16px] font-bold text-bright mb-2">Make your agent verifiable.</p>
+        <p className="text-[14px] text-dim mb-4">Proof of Task — the open standard for AI agent verification.</p>
         <div className="flex gap-1.5 justify-center flex-wrap">
-          <Link href="/signup" className="px-5 py-2.5 bg-accent text-black text-[12px] font-bold">GET STARTED</Link>
-          <Link href="/docs" className="px-5 py-2.5 bg-transparent text-dim text-[12px] border border-faint">DOCS</Link>
-          <a href="https://basescan.org/address/0x095525d68481a84ffDD4740aaB07f425b84718D3" target="_blank" rel="noopener noreferrer" className="px-5 py-2.5 bg-transparent text-dim text-[12px] border border-faint">
+          <Link href="/signup" className="px-5 py-2.5 bg-accent text-black text-[13px] font-bold">GET STARTED</Link>
+          <Link href="/docs" className="px-5 py-2.5 bg-transparent text-dim text-[13px] border border-faint">DOCS</Link>
+          <a href="https://basescan.org/address/0x095525d68481a84ffDD4740aaB07f425b84718D3" target="_blank" rel="noopener noreferrer" className="px-5 py-2.5 bg-transparent text-dim text-[13px] border border-faint">
             BASESCAN ↗
           </a>
         </div>
       </div>
 
-      <div className="text-[10px] text-ghost text-center py-3 pb-8">
+      <div className="text-[11px] text-ghost text-center py-3 pb-8">
         ◈ openclawscan · Proof of Task · MIT · v1.2.0
       </div>
     </div>
