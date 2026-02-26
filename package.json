@@ -1,6 +1,6 @@
 {
   "name": "openclawscan",
-  "version": "0.1.0",
+  "version": "1.2.0",
   "private": true,
   "workspaces": [
     "apps/*",
@@ -15,10 +15,5 @@
   "devDependencies": {
     "turbo": "^2.0.0",
     "typescript": "^5.4.0"
-  },
-  "dependencies": {
-    "ethers": "^6.16.0",
-    "merkletreejs": "^0.6.0",
-    "solc": "^0.8.34"
   }
 }

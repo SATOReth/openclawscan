@@ -4,14 +4,14 @@ import { Nav } from '@/components/nav';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://openclawscan.xyz'),
-  title: 'OpenClawScan — Tamper-proof receipts for AI agents',
-  description: 'Cryptographically signed and verifiable action logs for AI agents. Ed25519 signatures, SHA-256 hashing, one-link sharing.',
+  title: 'OpenClawScan — Proof of Task for AI agents',
+  description: 'Cryptographic proof that your AI agent executed a task. 3-level verification: Ed25519 signatures, AES-256-GCM encryption, Merkle proofs on Base L2. Open standard, MIT licensed.',
   icons: {
     icon: '/favicon.svg',
   },
   openGraph: {
-    title: 'OpenClawScan — Tamper-proof receipts for AI agents',
-    description: 'Every action your AI agent takes — cryptographically signed and verifiable. Ed25519 + SHA-256. Share one link, prove everything.',
+    title: 'OpenClawScan — Proof of Task for AI agents',
+    description: '3-level verification for AI agent work: Ed25519 signatures, E2E encryption, on-chain Merkle proofs on Base L2.',
     url: 'https://openclawscan.xyz',
     siteName: 'OpenClawScan',
     images: [
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'OpenClawScan — Tamper-proof receipts for AI agents',
+        alt: 'OpenClawScan — Proof of Task for AI agents',
       },
     ],
     locale: 'en_US',
@@ -27,8 +27,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'OpenClawScan — Tamper-proof receipts for AI agents',
-    description: 'Every action your AI agent takes — cryptographically signed and verifiable. Ed25519 + SHA-256. Free forever.',
+    title: 'OpenClawScan — Proof of Task for AI agents',
+    description: '3-level verification for AI agent work: Ed25519 signatures, E2E encryption, on-chain Merkle proofs on Base L2.',
     images: ['/og-image.png'],
   },
 };
