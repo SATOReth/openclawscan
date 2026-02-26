@@ -13,6 +13,7 @@ export async function GET(req: NextRequest) {
       id, slug, name, description, status,
       total_receipts, total_duration_ms, total_cost_usd,
       created_at, completed_at,
+      is_certified, certified_at,
       agents!inner(agent_id, display_name)
     `)
     .eq('owner_id', session.ownerId)
@@ -34,6 +35,8 @@ export async function GET(req: NextRequest) {
         total_cost_usd: t.total_cost_usd || 0,
         created_at: t.created_at,
         completed_at: t.completed_at,
+        is_certified: t.is_certified || false,
+        certified_at: t.certified_at || null,
         agent: { id: agent.agent_id, name: agent.display_name },
       };
     }),

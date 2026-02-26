@@ -14,6 +14,7 @@ interface Task {
   total_cost_usd: number;
   created_at: string;
   completed_at: string | null;
+  is_certified: boolean;
   agent: { id: string; name: string };
 }
 
@@ -56,7 +57,7 @@ export default function TasksPage() {
           <div className="text-[10.5px]">
             {/* Header */}
             <div className="grid gap-2 px-3.5 py-2 border-b border-faint text-[9px] text-ghost tracking-wide"
-              style={{ gridTemplateColumns: '60px 1fr 80px 32px 44px 48px 28px 28px' }}>
+              style={{ gridTemplateColumns: '60px 1fr 80px 32px 44px 48px 24px 28px 28px' }}>
               <span>STATUS</span><span>NAME</span><span>AGENT</span>
               <span className="text-right">#</span>
               <span className="text-right">DUR</span>
@@ -69,7 +70,7 @@ export default function TasksPage() {
               <div
                 key={t.task_id}
                 className="grid gap-2 px-3.5 py-2.5 items-center border-b border-faint/50 last:border-b-0 hover:bg-hl transition-colors"
-                style={{ gridTemplateColumns: '60px 1fr 80px 32px 44px 48px 28px 28px' }}
+                style={{ gridTemplateColumns: '60px 1fr 80px 32px 44px 48px 24px 28px 28px' }}
               >
                 <span className={`text-[9px] px-1.5 py-0.5 border text-center ${
                   t.status === 'completed' ? 'text-accent border-accent/30 bg-accent/5' :

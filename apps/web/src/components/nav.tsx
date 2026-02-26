@@ -40,7 +40,7 @@ export function Nav() {
         <Link href="/" className="flex items-center gap-2 cursor-pointer">
           <span className="text-accent text-[13px]">◈</span>
           <span className="text-[12px] font-bold text-bright">openclawscan</span>
-          <span className="text-[9px] text-ghost">v1.0</span>
+          <span className="text-[9px] text-ghost">v1.2</span>
         </Link>
 
         {/* Desktop links */}

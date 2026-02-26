@@ -19,7 +19,7 @@ export default function Home() {
           <pre className="text-[clamp(5px,1.2vw,9px)] leading-tight text-accent tracking-wide">{LOGO_ART}</pre>
           <div className="flex items-center gap-2 mt-2.5 mb-8">
             <span className="text-[10px] text-dim">OpenClawScan</span>
-            <span className="text-[9px] text-ghost">v1.0.0</span>
+            <span className="text-[9px] text-ghost">v1.2.0</span>
             <span className="text-[9px] text-accent border border-accent/20 px-1.5 bg-accent/[.04]">MIT</span>
           </div>
 
@@ -222,9 +222,9 @@ export default function Home() {
           <TBox title="ROADMAP" color="#22d3ee">
             {[
               ['#22c55e', 'v1.0', '✓', 'SDK, receipts, explorer, sharing'],
-              ['#60a5fa', 'v1.1', 'NEXT', 'PDF export, alerts, LangChain adapter'],
-              ['#a78bfa', 'v1.2', 'SOON', 'On-chain anchoring via Base L2'],
-              ['#eab308', 'v1.3', 'PLANNED', 'Marketplace API, reputation scores'],
+              ['#22c55e', 'v1.1', '\u2713', 'E2E encryption (AES-256-GCM), PDF export'],
+              ['#22c55e', 'v1.2', '\u2713', 'On-chain anchoring via Base L2 (LIVE)'],
+              ['#60a5fa', 'v1.3', 'NEXT', 'Marketplace API, reputation scores'],
             ].map(([col, ver, when, desc], i) => (
               <div key={ver} className={`flex gap-2.5 py-2.5 items-center ${i < 3 ? 'border-b border-faint' : ''}`}>
                 <span className="text-[8px]" style={{ color: col }}>██</span>
@@ -248,7 +248,7 @@ export default function Home() {
       </div>
 
       <div className="text-[10px] text-ghost text-center py-3 pb-8">
-        ◈ openclawscan · MIT · v1.0.0
+        ◈ openclawscan · MIT · v1.2.0
       </div>
     </div>
   );
