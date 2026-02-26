@@ -1,7 +1,7 @@
 {
   "name": "@openclawscan/sdk",
-  "version": "1.2.1",
-  "description": "Tamper-proof receipts for AI agents — Ed25519 signed, SHA-256 hashed, verifiable by anyone",
+  "version": "1.2.2",
+  "description": "Proof of Task for AI agents — Ed25519 signatures, AES-256-GCM encryption, Merkle proofs on Base L2",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -15,15 +15,19 @@
     "prepublishOnly": "npm run build"
   },
   "keywords": [
+    "proof-of-task",
     "ai-agent",
-    "receipt",
     "ed25519",
-    "cryptography",
+    "aes-256-gcm",
+    "merkle",
+    "blockchain",
+    "base-l2",
     "verification",
     "audit-trail",
     "openclaw",
-    "tamper-proof",
-    "digital-signature"
+    "e2e-encryption",
+    "on-chain",
+    "cryptography"
   ],
   "author": "SATOReth",
   "license": "MIT",
